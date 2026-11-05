@@ -23,3 +23,10 @@ export/
 # OS
 Thumbs.db
 .DS_Store
+
+tools/_*.txt
+tools/_scratch.gd
+tools/_scratch.gd.uid
+tools/bake_check.gd
+tools/bake_check.gd.uid
+

@@ -8,13 +8,10 @@
 
 config_version=5
 
-[GD-Sync]
-
-version="1.0.2"
-
 [application]
 
 config/name="APEX STRAFE"
+config/description="Movement-driven free-for-all arena shooter"
 run/main_scene="res://scenes/boot.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
@@ -23,10 +20,17 @@ config/icon="res://icon.svg"
 
 Events="*res://scripts/core/events.gd"
 Settings="*res://scripts/core/settings.gd"
-_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
 InputSetup="*res://scripts/core/input_setup.gd"
 Audio="*res://scripts/core/audio.gd"
 Game="*res://scripts/core/game.gd"
+_mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
+
+[debug]
+
+gdscript/warnings/untyped_declaration=1
+gdscript/warnings/unsafe_property_access=1
+gdscript/warnings/unsafe_method_access=1
+gdscript/warnings/unsafe_call_argument=1
 
 [display]
 
@@ -37,7 +41,17 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/GD-Sync/plugin.cfg", "res://addons/godot_ai/plugin.cfg", "res://addons/sky_3d/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
+
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="fighters"
+3d_physics/layer_3="projectiles"
+3d_physics/layer_4="pickups"
+3d_physics/layer_5="hitboxes"
+3d_physics/layer_6="debris"
+3d_physics/layer_7="triggers"
 
 [physics]
 
@@ -47,3 +61,4 @@ common/physics_ticks_per_second=120
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+anti_aliasing/quality/msaa_3d=1

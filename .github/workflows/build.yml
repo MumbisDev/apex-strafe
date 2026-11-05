@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  test-and-export:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run headless tests
+        run: |
+          export GODOT=/usr/local/bin/godot
+          chmod +x tools/run_tests.sh
+          ./tools/run_tests.sh
+      - name: Export (best effort)
+        run: |
+          export GODOT=/usr/local/bin/godot
+          chmod +x tools/build.sh
+          ./tools/build.sh || true
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-strafe-build
+          path: build/
+          if-no-files-found: ignore

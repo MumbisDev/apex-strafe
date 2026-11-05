@@ -11,6 +11,7 @@ var health: HealthComponent
 var visual: FighterVisual
 var camera_rig: CameraRig
 var inventory: Node ## WeaponInventory when available
+var viewmodel: Node3D = null ## first-person Viewmodel for local player
 var frozen: bool = false
 var score: int = 0
 var kills: int = 0
@@ -139,6 +140,11 @@ func _physics_process(dt: float) -> void:
 		inv.step(frame, dt)
 	elif inventory and inventory.has_method("step"):
 		inventory.call("step", frame, dt)
+	if viewmodel != null and viewmodel.has_method("set_motion") and camera_rig != null and camera_rig.camera != null:
+		var cam_basis: Basis = camera_rig.camera.global_transform.basis
+		var local_vel: Vector3 = cam_basis.inverse() * velocity
+		viewmodel.call("set_motion", frame.look_delta, local_vel,
+			movement.state == MovementController.State.SLIDE)
 
 func aim_origin() -> Vector3:
 	return global_position + Vector3.UP * movement.eye_height()

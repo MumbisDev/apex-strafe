@@ -8,7 +8,7 @@ const FADE_TIME: float = 0.6
 ## Slot id -> display name. Mirrors WeaponLibrary slots (0 = environment).
 const WEAPON_NAMES: Dictionary = {
 	0: "Void", 1: "Blade", 2: "Arc Pistol", 3: "SMG", 4: "Shotgun",
-	5: "Plasma", 6: "Rocket", 7: "Railgun",
+	5: "Plasma", 6: "Rocket", 7: "Railgun", 8: "Portal Gun",
 }
 
 var _entries: Array[Dictionary] = [] ## oldest first

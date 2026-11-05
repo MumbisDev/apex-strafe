@@ -18,6 +18,7 @@ const DEFAULTS: Dictionary = {
 	"weapon_5": [{"type": "key", "keycode": KEY_5}],
 	"weapon_6": [{"type": "key", "keycode": KEY_6}],
 	"weapon_7": [{"type": "key", "keycode": KEY_7}],
+	"weapon_8": [{"type": "key", "keycode": KEY_8}],
 	"weapon_next": [{"type": "mouse", "button": MOUSE_BUTTON_WHEEL_DOWN}],
 	"weapon_prev": [{"type": "mouse", "button": MOUSE_BUTTON_WHEEL_UP}],
 	"weapon_last": [{"type": "key", "keycode": KEY_Q}],

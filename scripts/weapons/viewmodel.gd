@@ -7,8 +7,8 @@ extends Node3D
 
 const BASE_OFFSET: Vector3 = Vector3(0.26, -0.24, -0.5)
 const MINIMAL_SCALE: float = 0.6
-const PRIORITY_BASE: int = 20
 const FLASH_PRIORITY: int = 100
+const MESHES_SCRIPT: String = "res://scripts/weapons/viewmodel_meshes.gd"
 const FLASH_TIME: float = 0.05
 const RECOIL_STIFFNESS: float = 240.0
 const RECOIL_DAMPING: float = 20.0
@@ -18,6 +18,19 @@ const SWAY_MAX: float = 0.06
 const BOB_REFERENCE_SPEED: float = 9.0
 const LOWER_DROP: float = 0.38
 const LOWER_PITCH: float = 0.9
+const SWING_DURATION: float = 0.42
+## Idle hold: blade upright, tip up, slight lean into view.
+const BLADE_REST_ROT: Vector3 = Vector3(0.12, -0.22, -0.18)
+const BLADE_REST_POS: Vector3 = Vector3(0.04, -0.06, 0.08)
+## Swing keyframes as offsets from rest. −Z is away from the camera into the world.
+## Columns: time (0..1), position offset, rotation offset (radians).
+const SWING_KEYS: Array[Dictionary] = [
+	{"t": 0.00, "pos": Vector3(0.10, 0.08, 0.14), "rot": Vector3(0.55, 0.55, 0.70)},
+	{"t": 0.18, "pos": Vector3(0.12, 0.14, -0.12), "rot": Vector3(-0.35, 0.40, 0.35)},
+	{"t": 0.42, "pos": Vector3(-0.02, 0.02, -0.58), "rot": Vector3(-1.45, -0.15, -0.55)},
+	{"t": 0.62, "pos": Vector3(-0.28, -0.16, -0.42), "rot": Vector3(-0.85, -0.85, -1.55)},
+	{"t": 1.00, "pos": Vector3.ZERO, "rot": Vector3.ZERO},
+]
 
 enum Mode { FULL, MINIMAL, HIDDEN }
 
@@ -30,7 +43,6 @@ var _muzzles: Array[Node3D] = []
 var _flashes: Array[MeshInstance3D] = []
 var _flash_light: OmniLight3D
 var _flash_timer: float = 0.0
-var _part_index: int = 0
 var _clock: float = 0.0
 var _bob_phase: float = 0.0
 var _rec_z: Vector2 = Vector2.ZERO ## (position, velocity) of the backwards recoil spring.
@@ -41,6 +53,7 @@ var _look_delta: Vector2 = Vector2.ZERO
 var _local_velocity: Vector3 = Vector3.ZERO
 var _sliding: bool = false
 var _slide_blend: float = 0.0
+var _swing_t: float = 1.0 ## 0 = swing start, 1 = idle
 
 
 func _ready() -> void:
@@ -58,7 +71,7 @@ func _ready() -> void:
 	var settings := WeaponUtils.get_autoload(&"Settings")
 	if settings != null and settings.get("viewmodel_mode") != null:
 		set_mode(int(settings.get("viewmodel_mode")) as Mode)
-	_show_slot(WeaponLibrary.SLOT_PISTOL)
+	_show_slot(WeaponLibrary.SLOT_BLADE)
 
 
 ## Parents the viewmodel to the player camera and follows the inventory's current weapon.
@@ -87,13 +100,13 @@ func set_motion(look_delta: Vector2, local_velocity: Vector3, sliding: bool) -> 
 	_sliding = sliding
 
 
-## Root node of the primitive model for a slot (1..7); empty until the viewmodel is in the tree.
+## Root node of the primitive model for a slot; empty until the viewmodel is in the tree.
 func get_model(slot: int) -> Node3D:
 	return _models[slot - 1] if slot >= 1 and slot <= _models.size() else null
 
 
 func get_muzzle_global_position() -> Vector3:
-	var slot: int = inventory.current_slot if inventory != null else WeaponLibrary.SLOT_PISTOL
+	var slot: int = inventory.current_slot if inventory != null else WeaponLibrary.SLOT_BLADE
 	return _muzzles[slot - 1].global_position
 
 
@@ -113,7 +126,8 @@ func _show_slot(slot: int) -> void:
 func _on_weapon_fired(slot: int) -> void:
 	var def: WeaponDef = WeaponLibrary.get_def(slot)
 	if def.is_melee():
-		kick(0.5, 7.0)
+		_swing_t = 0.0
+		kick(0.35, 0.0)
 		return
 	kick(0.6 + def.kick_pitch_deg * 0.5)
 	_flash_timer = FLASH_TIME
@@ -132,6 +146,8 @@ func _process(delta: float) -> void:
 	_rec_z = _step_spring(_rec_z, dt)
 	_rec_pitch = _step_spring(_rec_pitch, dt)
 	_rec_yaw = _step_spring(_rec_yaw, dt)
+	if _swing_t < 1.0:
+		_swing_t = minf(_swing_t + dt / SWING_DURATION, 1.0)
 	if _flash_timer > 0.0:
 		_flash_timer -= dt
 		if _flash_timer <= 0.0:
@@ -164,6 +180,37 @@ func _process(delta: float) -> void:
 		_rec_pitch.x - LOWER_PITCH * lower,
 		_rec_yaw.x + deg_to_rad(8.0) * _slide_blend,
 		deg_to_rad(-24.0) * _slide_blend - _sway.x * 2.0)
+	_update_blade_pose()
+
+
+## Arc slash: cock back, drive the tip away from the camera, cut across, recover.
+func _update_blade_pose() -> void:
+	var blade: Node3D = get_model(WeaponLibrary.SLOT_BLADE)
+	if blade == null:
+		return
+	if _swing_t >= 1.0:
+		blade.rotation = BLADE_REST_ROT
+		blade.position = BLADE_REST_POS
+		return
+	var sample: Dictionary = _sample_swing(_swing_t)
+	blade.position = BLADE_REST_POS + (sample["pos"] as Vector3)
+	blade.rotation = BLADE_REST_ROT + (sample["rot"] as Vector3)
+
+
+func _sample_swing(t: float) -> Dictionary:
+	var i: int = 0
+	while i + 1 < SWING_KEYS.size() and float(SWING_KEYS[i + 1]["t"]) < t:
+		i += 1
+	var a: Dictionary = SWING_KEYS[i]
+	var b: Dictionary = SWING_KEYS[mini(i + 1, SWING_KEYS.size() - 1)]
+	var t0: float = float(a["t"])
+	var t1: float = float(b["t"])
+	var u: float = 0.0 if t1 <= t0 else clampf((t - t0) / (t1 - t0), 0.0, 1.0)
+	u = u * u * (3.0 - 2.0 * u)
+	return {
+		"pos": (a["pos"] as Vector3).lerp(b["pos"] as Vector3, u),
+		"rot": (a["rot"] as Vector3).lerp(b["rot"] as Vector3, u),
+	}
 
 
 ## One semi-implicit Euler step of a damped spring pulling x (v.x) back to zero.
@@ -180,125 +227,41 @@ func _build_model(def: WeaponDef) -> void:
 	root.name = String(def.key).capitalize().replace(" ", "")
 	_pivot.add_child(root)
 	_models.append(root)
-	_part_index = 0
-	var body: Color = def.model_color
-	var dark: Color = body.darkened(0.45)
+	var meshes_script: GDScript = load(MESHES_SCRIPT) as GDScript
+	var meshes: RefCounted = meshes_script.new() as RefCounted
+	var tip: float = float(meshes.call("build", root, def))
 	var glow: Color = def.tracer_color
-	var muzzle_z: float = -0.4
-	match def.id:
-		WeaponLibrary.SLOT_BLADE:
-			_box(root, Vector3(0.035, 0.04, 0.14), Vector3(0, 0, 0.04), dark)
-			_box(root, Vector3(0.13, 0.025, 0.03), Vector3(0, 0, -0.04), body)
-			_box(root, Vector3(0.018, 0.07, 0.46), Vector3(0, 0, -0.30), body.lightened(0.3))
-			_box(root, Vector3(0.006, 0.006, 0.44), Vector3(0, 0.038, -0.30), glow, true)
-			_box(root, Vector3(0.03, 0.03, 0.03), Vector3(0, 0, 0.12), body)
-			muzzle_z = -0.55
-		WeaponLibrary.SLOT_PISTOL:
-			_box(root, Vector3(0.05, 0.06, 0.26), Vector3(0, 0.03, -0.08), body)
-			_box(root, Vector3(0.045, 0.12, 0.06), Vector3(0, -0.06, 0.02), dark)
-			_cyl(root, 0.013, 0.1, Vector3(0, 0.03, -0.25), dark)
-			_box(root, Vector3(0.052, 0.008, 0.18), Vector3(0, 0.05, -0.08), glow, true)
-			_box(root, Vector3(0.02, 0.02, 0.06), Vector3(0, -0.02, -0.06), dark)
-			muzzle_z = -0.31
-		WeaponLibrary.SLOT_SMG:
-			_box(root, Vector3(0.06, 0.08, 0.34), Vector3(0, 0, -0.1), body)
-			_box(root, Vector3(0.04, 0.06, 0.14), Vector3(0, -0.01, 0.16), dark)
-			_box(root, Vector3(0.04, 0.16, 0.05), Vector3(0, -0.12, -0.08), dark)
-			_box(root, Vector3(0.045, 0.1, 0.05), Vector3(0, -0.08, 0.04), dark)
-			_cyl(root, 0.015, 0.14, Vector3(0, 0.01, -0.34), dark)
-			_box(root, Vector3(0.062, 0.008, 0.28), Vector3(0, 0.044, -0.1), glow, true)
-			_box(root, Vector3(0.02, 0.025, 0.05), Vector3(0, 0.055, -0.02), dark)
-			muzzle_z = -0.42
-		WeaponLibrary.SLOT_SHOTGUN:
-			_box(root, Vector3(0.07, 0.09, 0.26), Vector3(0, 0, 0.0), body)
-			_cyl(root, 0.024, 0.56, Vector3(0, 0.03, -0.3), dark)
-			_cyl(root, 0.018, 0.4, Vector3(0, -0.02, -0.26), dark)
-			_box(root, Vector3(0.065, 0.05, 0.14), Vector3(0, -0.02, -0.28), body.lightened(0.15))
-			_box(root, Vector3(0.05, 0.08, 0.24), Vector3(0, -0.03, 0.24), dark)
-			_box(root, Vector3(0.072, 0.008, 0.2), Vector3(0, 0.048, 0.0), glow, true)
-			muzzle_z = -0.6
-		WeaponLibrary.SLOT_PLASMA:
-			_box(root, Vector3(0.08, 0.09, 0.3), Vector3(0, 0, -0.05), body)
-			_cyl(root, 0.034, 0.3, Vector3(0, 0.01, -0.3), dark)
-			_cyl(root, 0.016, 0.34, Vector3(0, 0.01, -0.3), glow, true)
-			_cyl(root, 0.05, 0.02, Vector3(0, 0.01, -0.22), glow, true)
-			_cyl(root, 0.05, 0.02, Vector3(0, 0.01, -0.34), glow, true)
-			_box(root, Vector3(0.05, 0.11, 0.06), Vector3(0, -0.09, 0.06), dark)
-			_box(root, Vector3(0.05, 0.06, 0.12), Vector3(0, -0.01, 0.2), dark)
-			muzzle_z = -0.48
-		WeaponLibrary.SLOT_ROCKET:
-			_cyl(root, 0.065, 0.7, Vector3(0, 0.03, -0.22), body)
-			_cyl(root, 0.08, 0.08, Vector3(0, 0.03, 0.15), dark)
-			_cyl(root, 0.072, 0.03, Vector3(0, 0.03, -0.55), glow, true)
-			_box(root, Vector3(0.05, 0.1, 0.06), Vector3(0, -0.08, -0.02), dark)
-			_box(root, Vector3(0.04, 0.08, 0.05), Vector3(0, -0.07, -0.24), dark)
-			_box(root, Vector3(0.02, 0.04, 0.1), Vector3(0, 0.11, -0.2), dark)
-			_box(root, Vector3(0.02, 0.008, 0.4), Vector3(0, 0.097, -0.22), glow, true)
-			muzzle_z = -0.58
-		_:
-			_box(root, Vector3(0.05, 0.07, 0.5), Vector3(0, 0, -0.1), body)
-			_box(root, Vector3(0.016, 0.03, 0.55), Vector3(0.04, 0.0, -0.3), glow, true)
-			_box(root, Vector3(0.016, 0.03, 0.55), Vector3(-0.04, 0.0, -0.3), glow, true)
-			_cyl(root, 0.022, 0.2, Vector3(0, 0.075, -0.12), dark)
-			_box(root, Vector3(0.05, 0.1, 0.06), Vector3(0, -0.08, 0.05), dark)
-			_box(root, Vector3(0.045, 0.08, 0.2), Vector3(0, -0.02, 0.25), dark)
-			_cyl(root, 0.012, 0.3, Vector3(0, 0.0, -0.45), dark)
-			muzzle_z = -0.6
 	var muzzle := Node3D.new()
 	muzzle.name = "Muzzle"
-	muzzle.position = Vector3(0, 0.02, muzzle_z)
+	# Blade is vertical (+Y); guns point forward (−Z).
+	if def.is_melee():
+		muzzle.position = Vector3(0.0, tip, 0.0)
+		root.rotation = BLADE_REST_ROT
+		root.position = BLADE_REST_POS
+	else:
+		muzzle.position = Vector3(0.0, 0.02, tip)
 	root.add_child(muzzle)
 	_muzzles.append(muzzle)
 	var flash := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * (0.28 if def.id != WeaponLibrary.SLOT_ROCKET else 0.4)
 	flash.mesh = quad
-	flash.material_override = _make_material(Color(glow, 0.9), true, FLASH_PRIORITY, true)
+	flash.material_override = _make_flash_material(Color(glow, 0.9))
 	flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	flash.visible = false
 	muzzle.add_child(flash)
 	_flashes.append(flash)
 
 
-func _box(parent: Node3D, size: Vector3, pos: Vector3, color: Color, glow: bool = false) -> void:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	_add_part(parent, mesh, pos, Vector3.ZERO, color, glow)
-
-
-## Cylinder lying along the Z axis (barrel direction).
-func _cyl(parent: Node3D, radius: float, length: float, pos: Vector3, color: Color, glow: bool = false) -> void:
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = radius
-	mesh.bottom_radius = radius
-	mesh.height = length
-	mesh.radial_segments = 12
-	_add_part(parent, mesh, pos, Vector3(deg_to_rad(90.0), 0.0, 0.0), color, glow)
-
-
-func _add_part(parent: Node3D, mesh: Mesh, pos: Vector3, rot: Vector3, color: Color, glow: bool) -> void:
-	var instance := MeshInstance3D.new()
-	instance.mesh = mesh
-	instance.position = pos
-	instance.rotation = rot
-	instance.material_override = _make_material(color, glow, PRIORITY_BASE + _part_index, false)
-	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_part_index += 1
-	parent.add_child(instance)
-
-
-func _make_material(color: Color, glow: bool, priority: int, additive: bool) -> StandardMaterial3D:
+func _make_flash_material(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.no_depth_test = true
-	mat.render_priority = clampi(priority, -128, 127)
-	mat.roughness = 0.6
-	if glow:
-		mat.emission_enabled = true
-		mat.emission = Color(color.r, color.g, color.b)
-		mat.emission_energy_multiplier = 2.5
-	if additive:
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.render_priority = FLASH_PRIORITY
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	mat.emission_enabled = true
+	mat.emission = Color(color.r, color.g, color.b)
+	mat.emission_energy_multiplier = 3.0
 	return mat

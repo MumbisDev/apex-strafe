@@ -2,10 +2,10 @@ class_name WeaponDef
 extends Resource
 ## Pure data for one weapon. All numbers come from WeaponLibrary (GDD section 7).
 
-enum FireType { MELEE, HITSCAN, PROJECTILE }
+enum FireType { MELEE, HITSCAN, PROJECTILE, PORTAL }
 
 @export_group("Identity")
-@export var id: int = 0 ## Slot 1..7; also used as weapon_id in events and DamageInfo.
+@export var id: int = 0 ## Slot 1..8; also used as weapon_id in events and DamageInfo.
 @export var key: StringName = &""
 @export var display_name: String = ""
 @export var fire_type: FireType = FireType.HITSCAN

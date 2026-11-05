@@ -21,12 +21,12 @@ func _frame(fire_held: bool = false) -> InputFrame:
 # ---------------------------------------------------------------- library / loadout
 
 func test_library_matches_gdd_table() -> void:
-	T.assert_eq(WeaponLibrary.all().size(), 7, "seven weapons")
+	T.assert_eq(WeaponLibrary.all().size(), 8, "eight weapons including portal")
 	var table: Array = [
 		# slot, damage, interval, ammo_start, ammo_max
 		[1, 55.0, 0.55, 0, 0], [2, 20.0, 0.28, 0, 0], [3, 9.0, 0.075, 60, 200],
 		[4, 9.0, 0.85, 10, 24], [5, 14.0, 0.11, 50, 200], [6, 85.0, 0.85, 5, 20],
-		[7, 85.0, 1.4, 4, 12],
+		[7, 85.0, 1.4, 4, 12], [8, 0.0, 0.35, 24, 24],
 	]
 	for row: Array in table:
 		var def: WeaponDef = WeaponLibrary.get_def(row[0] as int)
@@ -36,7 +36,7 @@ func test_library_matches_gdd_table() -> void:
 		T.assert_eq(def.ammo_start, row[3] as int, "%s ammo start" % def.display_name)
 		T.assert_eq(def.ammo_max, row[4] as int, "%s ammo max" % def.display_name)
 	T.assert_eq(WeaponLibrary.get_def(0), null, "slot 0 invalid")
-	T.assert_eq(WeaponLibrary.get_def(8), null, "slot 8 invalid")
+	T.assert_eq(WeaponLibrary.get_def(9), null, "slot 9 invalid")
 	var rocket: WeaponDef = WeaponLibrary.get_def(6)
 	T.assert_near(rocket.splash_damage, 80.0, 0.001, "rocket splash")
 	T.assert_near(rocket.splash_radius, 4.5, 0.001, "rocket radius")
@@ -44,14 +44,37 @@ func test_library_matches_gdd_table() -> void:
 	T.assert_eq(WeaponLibrary.get_def(4).pellets, 10, "shotgun pellets")
 	T.assert_eq(WeaponLibrary.get_def(7).pierce_count, 3, "rail pierce")
 	T.assert_near(WeaponLibrary.get_def(7).zoom_fov, 40.0, 0.001, "rail zoom")
+	T.assert_eq(WeaponLibrary.get_def(8).fire_type, WeaponDef.FireType.PORTAL, "portal type")
 
 
-func test_spawn_loadout_blade_and_sidearm_only() -> void:
+func test_spawn_loadout_blade_only() -> void:
 	var inv := WeaponInventory.new()
-	for slot in range(1, 8):
-		T.assert_eq(inv.has_weapon(slot), slot <= 2, "owned slot %d" % slot)
-	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_PISTOL, "starts on sidearm")
+	for slot in range(1, WeaponLibrary.SLOT_COUNT + 1):
+		T.assert_eq(inv.has_weapon(slot), slot == WeaponLibrary.SLOT_BLADE, "owned slot %d" % slot)
+	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_BLADE, "starts on blade")
 	inv.free()
+
+
+func test_weapon_marker_types_map_to_slots() -> void:
+	var spawner := PickupSpawner.new()
+	T.assert_eq(int(spawner.WEAPON_SLOTS["weapon_pistol"]), WeaponLibrary.SLOT_PISTOL, "pistol")
+	T.assert_eq(int(spawner.WEAPON_SLOTS["weapon_smg"]), WeaponLibrary.SLOT_SMG, "smg")
+	T.assert_eq(int(spawner.WEAPON_SLOTS["weapon_portal"]), WeaponLibrary.SLOT_PORTAL, "portal")
+	T.assert_eq(spawner._parse_kind("weapon_rocket"), GamePickup.Kind.WEAPON, "rocket kind")
+	T.assert_eq(spawner._default_delivery(GamePickup.Kind.WEAPON, WeaponLibrary.SLOT_SMG),
+		GamePickup.Delivery.SKY_DROP, "guns sky-drop")
+	T.assert_eq(spawner._default_delivery(GamePickup.Kind.WEAPON, WeaponLibrary.SLOT_PORTAL),
+		GamePickup.Delivery.CAGED, "portal caged")
+	T.assert_eq(spawner._default_delivery(GamePickup.Kind.MEGA_HEALTH, 0),
+		GamePickup.Delivery.CAGED, "mega caged")
+	spawner.free()
+
+
+func test_portal_gun_def_exists() -> void:
+	var def: WeaponDef = WeaponLibrary.get_def(WeaponLibrary.SLOT_PORTAL)
+	T.assert_true(def != null, "portal def")
+	T.assert_eq(def.fire_type, WeaponDef.FireType.PORTAL, "portal type")
+	T.assert_eq(WeaponLibrary.SLOT_COUNT, 8, "eight slots")
 
 
 func test_distance_falloff_shotgun() -> void:
@@ -216,7 +239,7 @@ func test_blade_backstab_lunge_and_range() -> void:
 func test_viewmodel_models_use_fallback_materials() -> void:
 	var view := Viewmodel.new()
 	T.root.add_child(view)
-	for slot in range(1, 8):
+	for slot in range(1, WeaponLibrary.SLOT_COUNT + 1):
 		var model: Node3D = view.get_model(slot)
 		T.assert_true(model != null, "model for slot %d" % slot)
 		var parts: int = 0
@@ -245,11 +268,11 @@ func test_viewmodel_follows_inventory_and_animates() -> void:
 	var view := Viewmodel.new()
 	view.attach(camera, w.inventory)
 	T.assert_true(view.get_parent() == camera, "attached to the camera")
-	T.assert_true(view.get_model(WeaponLibrary.SLOT_PISTOL).visible, "starts on the sidearm model")
+	T.assert_true(view.get_model(WeaponLibrary.SLOT_BLADE).visible, "starts on the blade model")
 	w.inventory.give_weapon(WeaponLibrary.SLOT_RAIL, false)
 	w.inventory.select_slot(WeaponLibrary.SLOT_RAIL)
 	T.assert_true(view.get_model(WeaponLibrary.SLOT_RAIL).visible, "switches model with the inventory")
-	T.assert_true(not view.get_model(WeaponLibrary.SLOT_PISTOL).visible, "previous model hidden")
+	T.assert_true(not view.get_model(WeaponLibrary.SLOT_BLADE).visible, "previous model hidden")
 	view.set_motion(Vector2(0.01, 0.0), Vector3(3.0, 0.0, -9.0), true)
 	view.kick(1.0)
 	view._process(0.016)
@@ -257,6 +280,17 @@ func test_viewmodel_follows_inventory_and_animates() -> void:
 	for i in 60:
 		view._process(0.016)
 	T.assert_true(absf(view.get_node("Pivot").position.z - kicked) > 0.0, "pose changes over time")
+	w.inventory.select_slot(WeaponLibrary.SLOT_BLADE)
+	var blade: Node3D = view.get_model(WeaponLibrary.SLOT_BLADE)
+	view._process(0.016)
+	var idle_z: float = blade.position.z
+	view._on_weapon_fired(WeaponLibrary.SLOT_BLADE)
+	for i in 8:
+		view._process(0.025)
+	T.assert_true(blade.position.z < idle_z - 0.2, "blade reaches away from camera on swing")
+	for i in 40:
+		view._process(0.016)
+	T.assert_true(is_equal_approx(blade.position.z, Viewmodel.BLADE_REST_POS.z), "blade returns to rest")
 	w.dispose()
 
 
@@ -334,20 +368,21 @@ func test_auto_switch_when_ammo_runs_out() -> void:
 	w.inventory.weapons[WeaponLibrary.SLOT_RAIL - 1].ammo = 1
 	w.inventory.step(_frame(true), WeaponTestWorld.TICK)
 	T.assert_eq(w.inventory.get_ammo(WeaponLibrary.SLOT_RAIL), 0, "last round fired")
-	T.assert_eq(w.inventory.current_slot, WeaponLibrary.SLOT_PISTOL, "falls back to best weapon with ammo")
+	T.assert_eq(w.inventory.current_slot, WeaponLibrary.SLOT_BLADE, "falls back to blade when no guns")
 	w.inventory.give_weapon(WeaponLibrary.SLOT_SMG, false)
+	w.inventory.give_weapon(WeaponLibrary.SLOT_PISTOL, false)
 	w.inventory.select_slot(WeaponLibrary.SLOT_SMG)
 	w.inventory.weapons[WeaponLibrary.SLOT_SMG - 1].ammo = 0
 	w.inventory.switch_timer = 0.0
 	w.inventory.step(_frame(true), WeaponTestWorld.TICK)
-	T.assert_eq(w.inventory.current_slot, WeaponLibrary.SLOT_PISTOL, "dry fire switches away from empty weapon")
+	T.assert_eq(w.inventory.current_slot, WeaponLibrary.SLOT_PISTOL, "dry fire switches to next best gun")
 	w.dispose()
 
 
 func test_pickup_auto_switch_rules() -> void:
 	var inv := WeaponInventory.new()
 	T.assert_true(inv.give_weapon(WeaponLibrary.SLOT_ROCKET), "gives rocket")
-	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_ROCKET, "auto-switch from sidearm")
+	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_ROCKET, "auto-switch from blade")
 	T.assert_eq(inv.get_ammo(WeaponLibrary.SLOT_ROCKET), 5, "starting ammo")
 	inv.give_weapon(WeaponLibrary.SLOT_RAIL)
 	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_ROCKET, "no auto-switch from a real weapon")
@@ -367,12 +402,13 @@ func test_ammo_box_and_cycling() -> void:
 	inv.give_ammo_box()
 	T.assert_eq(inv.get_ammo(WeaponLibrary.SLOT_SMG), 60 + 80, "SMG gets 40% of 200")
 	T.assert_eq(inv.get_ammo(WeaponLibrary.SLOT_SHOTGUN), 10 + 10, "shotgun gets ~40% of 24")
+	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_BLADE, "still on blade before cycle")
 	T.assert_true(inv.cycle(1), "cycle next")
-	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_SMG, "next owned weapon after sidearm")
+	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_SMG, "next owned weapon after blade")
 	T.assert_true(inv.switch_last(), "swap to last")
-	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_PISTOL, "back to previous")
+	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_BLADE, "back to previous")
 	T.assert_true(inv.cycle(-1), "cycle previous")
-	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_BLADE, "previous owned")
+	T.assert_eq(inv.current_slot, WeaponLibrary.SLOT_SHOTGUN, "wraps to highest owned")
 	inv.free()
 
 

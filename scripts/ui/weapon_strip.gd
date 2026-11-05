@@ -1,11 +1,11 @@
 class_name WeaponStrip
 extends HBoxContainer
-## 7-slot weapon strip. Slot states: EMPTY (not owned), OWNED, NO_AMMO (owned but dry).
+## Weapon strip. Slot states: EMPTY (not owned), OWNED, NO_AMMO (owned but dry).
 
 enum SlotState { EMPTY, OWNED, NO_AMMO }
 
-const SLOTS: int = 7
-const SHORT_NAMES: Array[String] = ["BLD", "ARC", "SMG", "SHT", "PLS", "RKT", "RAIL"]
+const SLOTS: int = 8
+const SHORT_NAMES: Array[String] = ["BLD", "ARC", "SMG", "SHT", "PLS", "RKT", "RAIL", "PRT"]
 
 var selected: int = 0 ## slot 1..7, 0 = none
 var _panels: Array[PanelContainer] = []

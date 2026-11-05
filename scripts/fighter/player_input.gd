@@ -62,7 +62,7 @@ func sample(dt: float, _fighter: Fighter) -> InputFrame:
 		_frame.grapple_pressed = grap_raw and not _prev_grapple
 	_prev_grapple = grap_raw
 
-	for i in range(1, 8):
+	for i in range(1, WeaponLibrary.SLOT_COUNT + 1):
 		if Input.is_action_just_pressed("weapon_%d" % i):
 			_frame.weapon_select = i
 	_frame.weapon_next = Input.is_action_just_pressed("weapon_next")

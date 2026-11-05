@@ -11,7 +11,9 @@ const FIRING_X: float = -34.0
 const GALLERY_DISTANCES: Array[float] = [10.0, 20.0, 40.0, 70.0]
 const LANE_Z: Array[float] = [-15.0, -5.0, 5.0, 15.0]
 const DUMMY_KINDS: Array[String] = ["static", "moving", "strafing", "popup"]
-const WEAPON_NAMES: Array[String] = ["BLADE", "ARC PISTOL", "SMG", "SHOTGUN", "PLASMA", "ROCKET", "RAILGUN"]
+const WEAPON_NAMES: Array[String] = [
+	"BLADE", "ARC PISTOL", "SMG", "SHOTGUN", "PLASMA", "ROCKET", "RAILGUN", "PORTAL",
+]
 const GATE_XS: Array[float] = [45.0, 65.0, 85.0, 105.0]
 
 var _trim: Color

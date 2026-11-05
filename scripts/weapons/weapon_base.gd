@@ -78,8 +78,42 @@ func try_fire(aim: Transform3D, muzzle: Vector3) -> bool:
 			_fire_hitscan(aim, muzzle)
 		WeaponDef.FireType.PROJECTILE:
 			_fire_projectile(aim, muzzle)
+		WeaponDef.FireType.PORTAL:
+			_fire_portal(aim, muzzle, 0)
 	fired.emit(def.id, aim.origin, -aim.basis.z)
 	return true
+
+
+## Portal gun: index 0 = primary (orange), 1 = alt (blue).
+func try_fire_portal(aim: Transform3D, muzzle: Vector3, index: int) -> bool:
+	if shooter == null or not is_ready():
+		return false
+	cooldown += fire_interval()
+	if not def.infinite_ammo and not unlimited_ammo:
+		ammo -= 1
+	shots_fired += 1
+	_fire_portal(aim, muzzle, index)
+	fired.emit(def.id, aim.origin, -aim.basis.z)
+	return true
+
+
+func _fire_portal(aim: Transform3D, muzzle: Vector3, index: int) -> void:
+	var dir: Vector3 = -aim.basis.z
+	var res: Dictionary = WeaponUtils.ray(
+		_space(), aim.origin, aim.origin + dir * def.max_range, WeaponUtils.MASK_WORLD, _excludes)
+	var hit: Vector3 = aim.origin + dir * mini(12.0, def.max_range)
+	var normal := -dir
+	if not res.is_empty():
+		hit = res["position"] as Vector3
+		normal = res["normal"] as Vector3
+		impact.emit(hit, normal, false)
+	tracer.emit(muzzle, hit, def.tracer_color if index == 0 else Color(1.0, 0.45, 0.1), def.tracer_lifetime)
+	var tree := shooter.get_tree() if shooter != null else null
+	if tree == null:
+		return
+	var sys: Node = tree.get_first_node_in_group(&"portal_system")
+	if sys != null and sys.has_method("place"):
+		sys.call("place", owner_id, index, hit, normal)
 
 
 func _space() -> PhysicsDirectSpaceState3D:

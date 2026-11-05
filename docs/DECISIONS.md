@@ -46,3 +46,10 @@ Format: `YYYY-MM-DD | decision | reason`
 2026-11-05 | Allow GD-Sync as networking addon exception | Friends multiplayer without port-forwarding via private lobby codes; keys stay gitignored in addons/GD-Sync/keys.cfg.
 2026-11-05 | Online combat is host-authoritative; movement is client-owned via RemoteInput pose sync | Matches GDD Section 18 network-ready design with GD-Sync call_func relay.
 
+
+2026-11-05 | Blade-only spawn; Arc Pistol is a map pickup | Deepens early-fight knife play and contested gun race; matches post-DoD design direction.
+2026-11-05 | Weapon pickups parse `weapon_*` marker types to slot ids (was broken: fell through to STIM) | Map guns were spawning as health; fixed in PickupSpawner.
+2026-11-05 | Contested pickups use sky-drop (weapons) or timed cage (mega/powerups/portal) | Makes strong items readable fights instead of silent floor cubes.
+2026-11-05 | Portal Gun is slot 8 (FireType.PORTAL); primary/alt place linked orange/blue gates | Special weapon for movement expression; portals clear on owner death.
+2026-11-05 | Surf ramps on Sprawl (group `surf`) + slightly higher air_accel/wish_cap | Finishes GDD §6 surf FALLBACK for movement depth.
+2026-11-05 | Weapon ids are slots 1-8 (was 1-7) | Portal Gun added as slot 8 across inventory, HUD strip, kill feed, input.

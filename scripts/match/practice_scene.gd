@@ -45,10 +45,14 @@ func _ready() -> void:
 		return Transform3D(Basis.from_euler(Vector3(player.movement.pitch, player.movement.yaw, 0)), player.aim_origin())
 	inv.damage_sink = func(victim_id: int, info: DamageInfo) -> void:
 		mm.auth_apply_damage(victim_id, info)
-	for slot in range(1, 8):
+	for slot in range(1, WeaponLibrary.SLOT_COUNT + 1):
 		inv.give_weapon(slot, false)
-	inv.select_slot(2)
+	inv.select_slot(WeaponLibrary.SLOT_PISTOL)
 	inv.refresh_excludes()
+	var vm_script: GDScript = load("res://scripts/weapons/viewmodel.gd") as GDScript
+	var vm: Node3D = vm_script.new() as Node3D
+	vm.call("attach", player.camera_rig.camera, inv)
+	player.viewmodel = vm
 	mm.local_player_id = player.id
 	mm.auth_register_fighter(player)
 	_build_hud()

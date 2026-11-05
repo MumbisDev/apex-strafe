@@ -38,6 +38,7 @@ func build(parent: Node3D) -> Dictionary:
 	_build_blocks_and_plaza()
 	_build_skywalks()
 	_build_tunnels()
+	_build_surf()
 	_build_roads()
 	_build_links()
 	_place_spawns()
@@ -136,6 +137,13 @@ func _tunnel_run(x0: float, z: float, dir_sign: float) -> void:
 	slide_tunnel(Vector3(x0 + dir_sign * 16.0, rise, z), d, TUNNEL_LEN, TUNNEL_SLOPE, 3.0, 2.2, m_wall, _teal)
 	label_sign(Vector3(x0 + dir_sign * 15.0, rise + 3.0, z), "SLIDE", _pink, yaw_to(d), 1.0)
 
+func _build_surf() -> void:
+	## Contested surf lanes (pitch ~55–65°) near the plaza for movement expression.
+	surf_ramp(Vector3(-40.0, 3.0, 0.0), Vector3(8.0, 0.4, 18.0), 58.0, 90.0)
+	surf_ramp(Vector3(40.0, 3.0, 0.0), Vector3(8.0, 0.4, 18.0), 58.0, -90.0)
+	label_sign(Vector3(-40.0, 8.0, 0.0), "SURF", _teal, deg_to_rad(90.0), 1.0)
+	label_sign(Vector3(40.0, 8.0, 0.0), "SURF", _pink, deg_to_rad(-90.0), 1.0)
+
 func _build_roads() -> void:
 	for z in [-14.0, 14.0]:
 		for i in 15:
@@ -172,6 +180,9 @@ func _place_pickups() -> void:
 	pickup(P_SHOTGUN, Vector3(gap_center(0) + 0.6, 0, -28.4))
 	pickup(P_SMG, Vector3(gap_center(4) + 0.6, 0, 28.4))
 	pickup(P_PLASMA, Vector3(0, 0, -6))
+	pickup(P_PISTOL, Vector3(-20, 0, 0))
+	pickup(P_PISTOL, Vector3(20, 0, 0))
+	pickup(P_PORTAL, Vector3(6, 6, 0))
 	pickup(P_OVERCHARGE, Vector3(14, N_ROOF, -26.5))
 	pickup(P_HASTE, Vector3(56, 0, 14))
 	pickup(P_MEGA, Vector3(11, 6, 11))

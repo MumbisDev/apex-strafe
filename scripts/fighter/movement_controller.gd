@@ -106,6 +106,11 @@ func step(fighter: CharacterBody3D, frame: InputFrame, dt: float) -> void:
 			_move(fighter)
 			return
 
+	# Surf (steep surfaces in group "surf")
+	if _step_surf(fighter, wish, dt):
+		_move(fighter)
+		return
+
 	# Slide
 	if state == State.SLIDE:
 		_step_slide(fighter, frame, wish, dt, on_floor)
@@ -164,6 +169,29 @@ func step(fighter: CharacterBody3D, frame: InputFrame, dt: float) -> void:
 
 	_cap_speed(fighter)
 	_move(fighter)
+
+func _step_surf(fighter: CharacterBody3D, wish: Vector3, dt: float) -> bool:
+	for i in fighter.get_slide_collision_count():
+		var col := fighter.get_slide_collision(i)
+		if col == null:
+			continue
+		var n := col.get_normal()
+		if n.y < config.surf_ny_min or n.y > config.surf_ny_max:
+			continue
+		var collider := col.get_collider() as Node
+		if collider == null or not collider.is_in_group("surf"):
+			continue
+		var vel: Vector3 = fighter.velocity.slide(n)
+		vel += (Vector3.DOWN * config.gravity).slide(n) * dt
+		var wish_plane := wish.slide(n)
+		if wish_plane.length_squared() > 0.0001:
+			vel += wish_plane.normalized() * config.surf_steer * dt
+		fighter.velocity = vel
+		state = State.AIR
+		fighter.floor_snap_length = 0.0
+		return true
+	return false
+
 
 func _do_jump(fighter: CharacterBody3D) -> void:
 	fighter.velocity.y = config.jump_velocity

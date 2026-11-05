@@ -8,8 +8,11 @@ extends Resource
 @export var ground_friction: float = 6.0
 @export var stop_speed: float = 2.5
 @export var jump_velocity: float = 8.6
-@export var air_accel: float = 20.0
+@export var air_accel: float = 24.0
 @export var air_wish_cap: float = 1.0
+@export var surf_ny_min: float = 0.17 ## ~80 deg from up
+@export var surf_ny_max: float = 0.64 ## ~50 deg from up
+@export var surf_steer: float = 10.0
 @export var jump_buffer_time: float = 0.10
 @export var coyote_time: float = 0.08
 @export var max_speed_hard_cap: float = 35.0

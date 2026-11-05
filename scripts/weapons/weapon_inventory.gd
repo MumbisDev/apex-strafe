@@ -1,6 +1,6 @@
 class_name WeaponInventory
 extends Node
-## Owns the seven WeaponBase slots of one fighter: ownership, ammo, switching and trigger logic.
+## Owns the WeaponBase slots of one fighter: ownership, ammo, switching and trigger logic.
 ## Call step(frame, dt) once per physics tick from the fighter (no self-processing, so replays
 ## and tests stay deterministic).
 
@@ -15,7 +15,7 @@ const FIRE_BUFFER_TIME: float = 0.12
 const AMMO_BOX_FRACTION: float = 0.4
 const EYE_HEIGHT: float = 1.62
 const MUZZLE_OFFSET: Vector3 = Vector3(0.25, -0.2, -0.6)
-const STARTER_SLOTS: Array[int] = [WeaponLibrary.SLOT_BLADE, WeaponLibrary.SLOT_PISTOL]
+const STARTER_SLOTS: Array[int] = [WeaponLibrary.SLOT_BLADE]
 
 var shooter: Node3D:
 	set(value):
@@ -83,7 +83,7 @@ func _ready() -> void:
 	_push_context()
 
 
-## Fighters spawn with Blade and Sidearm only, holding the Sidearm.
+## Fighters spawn with Blade only; guns come from map pickups.
 func reset_loadout() -> void:
 	for i in weapons.size():
 		owned[i] = false
@@ -92,7 +92,7 @@ func reset_loadout() -> void:
 		weapons[i].spread_deg = weapons[i].def.spread_min_deg
 	for slot in STARTER_SLOTS:
 		owned[slot - 1] = true
-	current_slot = WeaponLibrary.SLOT_PISTOL
+	current_slot = WeaponLibrary.SLOT_BLADE
 	last_slot = WeaponLibrary.SLOT_BLADE
 	switch_timer = 0.0
 	zoomed = false
@@ -280,7 +280,11 @@ func step(frame: InputFrame, dt: float) -> void:
 		w.tick(dt)
 	_handle_selection(frame)
 	var weapon: WeaponBase = current_weapon()
-	zoomed = weapon.def.zoom_fov > 0.0 and frame.alt_held and switch_timer <= 0.0
+	zoomed = weapon.def.zoom_fov > 0.0 and frame.alt_held and switch_timer <= 0.0 \
+		and weapon.def.fire_type != WeaponDef.FireType.PORTAL
+	if weapon.def.fire_type == WeaponDef.FireType.PORTAL:
+		_step_portal(frame, weapon)
+		return
 	if frame.fire_pressed and not weapon.def.auto_fire:
 		_fire_buffer = FIRE_BUFFER_TIME
 	elif _fire_buffer > 0.0:
@@ -296,6 +300,26 @@ func step(frame: InputFrame, dt: float) -> void:
 	var aim: Transform3D = get_aim_transform()
 	if weapon.try_fire(aim, get_muzzle_position(aim)):
 		_fire_buffer = 0.0
+		if not weapon.has_ammo():
+			select_slot(best_slot_with_ammo(current_slot))
+
+
+func _step_portal(frame: InputFrame, weapon: WeaponBase) -> void:
+	if switch_timer > 0.0 or weapon.cooldown > 0.0:
+		return
+	if not weapon.has_ammo():
+		dry_fired.emit(current_slot)
+		select_slot(best_slot_with_ammo(current_slot))
+		return
+	var index := -1
+	if frame.fire_pressed:
+		index = 0
+	elif frame.alt_pressed:
+		index = 1
+	if index < 0:
+		return
+	var aim: Transform3D = get_aim_transform()
+	if weapon.try_fire_portal(aim, get_muzzle_position(aim), index):
 		if not weapon.has_ammo():
 			select_slot(best_slot_with_ammo(current_slot))
 

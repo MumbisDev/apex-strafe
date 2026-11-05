@@ -16,6 +16,8 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	pickup_spawner = PickupSpawner.new()
 	add_child(pickup_spawner)
+	var portal_script: GDScript = load("res://scripts/weapons/portal_system.gd") as GDScript
+	add_child(portal_script.new())
 	mm = MatchManager.new()
 	add_child(mm)
 	_build_map()
@@ -255,6 +257,11 @@ func _attach_inventory(f: Fighter) -> void:
 		inv.infinite_ammo = true
 	else:
 		inv.reset_loadout()
+	if not f.is_bot and f.camera_rig != null and f.camera_rig.camera != null:
+		var vm_script: GDScript = load("res://scripts/weapons/viewmodel.gd") as GDScript
+		var vm: Node3D = vm_script.new() as Node3D
+		vm.call("attach", f.camera_rig.camera, inv)
+		f.viewmodel = vm
 
 func _build_hud() -> void:
 	hud = CanvasLayer.new()
@@ -295,6 +302,9 @@ func try_collect_pickup(f: Fighter, p: GamePickup) -> void:
 
 func on_fighter_killed(victim: Fighter) -> void:
 	victim.visible = false
+	var portals: Node = get_tree().get_first_node_in_group(&"portal_system")
+	if portals != null and portals.has_method("clear_owner"):
+		portals.call("clear_owner", victim.id)
 	# Debris burst
 	var d := Debris.new()
 	add_child(d)

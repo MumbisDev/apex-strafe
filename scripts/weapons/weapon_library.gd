@@ -1,6 +1,6 @@
 class_name WeaponLibrary
 extends RefCounted
-## Builds the 7 WeaponDefs from the GDD section 7 tables. The only place weapon numbers live.
+## Builds WeaponDefs (GDD §7 + portal special). The only place weapon numbers live.
 
 const SLOT_BLADE: int = 1
 const SLOT_PISTOL: int = 2
@@ -9,12 +9,13 @@ const SLOT_SHOTGUN: int = 4
 const SLOT_PLASMA: int = 5
 const SLOT_ROCKET: int = 6
 const SLOT_RAIL: int = 7
-const SLOT_COUNT: int = 7
+const SLOT_PORTAL: int = 8
+const SLOT_COUNT: int = 8
 
 static var _defs: Array[WeaponDef] = []
 
 
-## Returns the def for slot 1..7 (null when out of range).
+## Returns the def for slot 1..SLOT_COUNT (null when out of range).
 static func get_def(slot: int) -> WeaponDef:
 	_ensure_built()
 	if slot < 1 or slot > SLOT_COUNT:
@@ -31,7 +32,7 @@ static func _ensure_built() -> void:
 	if _defs.size() == SLOT_COUNT:
 		return
 	_defs = [
-		_blade(), _pistol(), _smg(), _shotgun(), _plasma(), _rocket(), _rail(),
+		_blade(), _pistol(), _smg(), _shotgun(), _plasma(), _rocket(), _rail(), _portal(),
 	]
 
 
@@ -62,7 +63,7 @@ static func _blade() -> WeaponDef:
 
 static func _pistol() -> WeaponDef:
 	var d := _base(SLOT_PISTOL, &"arc_pistol", "Arc Pistol", WeaponDef.FireType.HITSCAN)
-	d.is_starter = true
+	d.is_starter = false
 	d.infinite_ammo = true
 	d.damage = 20.0
 	d.head_mult = 1.5
@@ -167,4 +168,18 @@ static func _rail() -> WeaponDef:
 	d.tracer_color = Color(1.0, 0.2, 0.9)
 	d.tracer_lifetime = 0.8
 	d.model_color = Color(0.3, 0.2, 0.35)
+	return d
+
+
+static func _portal() -> WeaponDef:
+	var d := _base(SLOT_PORTAL, &"portal_gun", "Portal Gun", WeaponDef.FireType.PORTAL)
+	d.damage = 0.0
+	d.fire_interval = 0.35
+	d.ammo_start = 24
+	d.ammo_max = 24
+	d.max_range = 60.0
+	d.kick_pitch_deg = 0.4
+	d.tracer_color = Color(0.2, 0.55, 1.0)
+	d.tracer_lifetime = 0.2
+	d.model_color = Color(0.15, 0.35, 0.55)
 	return d

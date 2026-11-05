@@ -104,6 +104,9 @@ func _build_links(centers: Array[Vector3]) -> void:
 func _place_pickups(centers: Array[Vector3]) -> void:
 	pickup(P_OVERCHARGE, Vector3(2.5, TOWER_H, 0))
 	pickup(P_RAILGUN, Vector3(-2.5, TOWER_H, 0))
+	pickup(P_PISTOL, Vector3(10, 0, 10))
+	pickup(P_PISTOL, Vector3(-10, 0, -10))
+	pickup(P_PORTAL, Vector3(0, TOWER_H * 0.5, 18))
 	var kinds: Array[String] = [P_SMG, P_SHOTGUN, P_PLASMA, P_ROCKET, P_MEGA, P_HASTE, P_AMMO, P_AMMO]
 	for i in centers.size():
 		pickup(kinds[i], centers[i] + _outward(centers[i]) * 2.0)

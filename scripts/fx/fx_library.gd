@@ -14,7 +14,8 @@ const SHOTGUN_SLOT: int = 4
 const RAIL_SLOT: int = 7
 ## Weapon slot -> tracer color. Slots without an entry (blade, plasma, rocket) spawn no tracer.
 const TRACER_COLORS: Dictionary = {
-	2: Color("#19E3FF"), 3: Color("#FFE033"), 4: Color("#FFFFFF"), 7: Color("#FF33E6"),
+	2: Color("#19E3FF"), 3: Color("#FFE033"), 4: Color("#FFFFFF"),
+	7: Color("#FF33E6"), 8: Color("#3399FF"),
 }
 const POOL_EXPLOSIONS: int = 6
 const POOL_TRACERS: int = 24

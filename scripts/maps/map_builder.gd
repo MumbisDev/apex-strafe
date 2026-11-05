@@ -17,14 +17,16 @@ const P_PLATE := "armor_plate"
 const P_AMMO := "ammo_box"
 const P_OVERCHARGE := "overcharge"
 const P_HASTE := "haste"
+const P_PISTOL := "weapon_pistol"
 const P_SMG := "weapon_smg"
 const P_SHOTGUN := "weapon_shotgun"
 const P_PLASMA := "weapon_plasma"
 const P_ROCKET := "weapon_rocket"
 const P_RAILGUN := "weapon_railgun"
+const P_PORTAL := "weapon_portal"
 const PICKUP_TYPES: Array[String] = [
 	P_STIM, P_MEDKIT, P_MEGA, P_SHARD, P_PLATE, P_AMMO, P_OVERCHARGE, P_HASTE,
-	P_SMG, P_SHOTGUN, P_PLASMA, P_ROCKET, P_RAILGUN,
+	P_PISTOL, P_SMG, P_SHOTGUN, P_PLASMA, P_ROCKET, P_RAILGUN, P_PORTAL,
 ]
 
 const MAP_SCRIPTS: Dictionary = {
@@ -129,6 +131,14 @@ func _add_part(body: StaticBody3D, mesh: Mesh, shape: Shape3D, mat: Material, of
 	cs.shape = shape
 	cs.position = offset
 	body.add_child(cs)
+
+## Steep ramp (50–80°) for surfing; body is in group `surf`.
+func surf_ramp(center: Vector3, size: Vector3, pitch_deg: float, yaw_deg: float = 0.0) -> StaticBody3D:
+	var basis := Basis.from_euler(Vector3(deg_to_rad(pitch_deg), deg_to_rad(yaw_deg), 0.0))
+	var body := box(center, size, m_accent, basis)
+	body.add_to_group("surf")
+	return body
+
 
 func box(pos: Vector3, size: Vector3, mat: Material, basis: Basis = Basis.IDENTITY) -> StaticBody3D:
 	var mesh := BoxMesh.new()

@@ -89,39 +89,92 @@ func _load_or_synth_all() -> void:
 			_streams[k] = _synth_placeholder(k)
 
 func _synth_placeholder(key: String) -> AudioStreamWAV:
+	## Quiet procedural stand-ins. Never emit a continuous midrange sine — that
+	## reads as a painful mains-hum on Music/Ambient buses when looped.
 	var stream := AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = 44100
-	stream.stereo = key.begins_with("music_")
+	var is_music := key.begins_with("music_")
+	var is_amb := key.begins_with("amb_")
+	var is_loop := key.ends_with("_loop") or is_amb or is_music
+	stream.mix_rate = 32000 if is_music else 44100
+	stream.stereo = is_music
 	var dur := 0.12
-	if key.ends_with("_loop") or key.begins_with("amb_") or key.begins_with("music_"):
-		dur = 1.0 if not key.begins_with("music_") else 2.0
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	if is_music:
+		dur = 4.0
+	elif is_amb:
+		dur = 3.0
+	elif is_loop:
+		dur = 1.0
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if is_loop else AudioStreamWAV.LOOP_DISABLED
 	var n := int(dur * stream.mix_rate)
 	var data := PackedByteArray()
 	data.resize(n * (4 if stream.stereo else 2))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(key)
-	var base_f := 220.0 + float(rng.randi() % 600)
+	# Soft chord roots well below vocal range for pads; noise beds elsewhere.
+	var root: float = 55.0 + float(abs(hash(key)) % 30)
+	var fifth: float = root * 1.5
+	var octave: float = root * 2.0
+	var brown_l := 0.0
+	var brown_r := 0.0
 	for i in n:
 		var t := float(i) / float(stream.mix_rate)
 		var env := 1.0
-		if not (key.ends_with("_loop") or key.begins_with("amb_") or key.begins_with("music_")):
-			env = clampf(1.0 - t / dur, 0.0, 1.0)
-		var s := sin(TAU * base_f * t) * 0.25 * env
-		if key.begins_with("shot_") or key == "explosion" or key == "footstep":
-			s = (rng.randf() * 2.0 - 1.0) * 0.2 * env
-		var sample := int(clampf(s, -1.0, 1.0) * 32767.0)
-		var o := i * (4 if stream.stereo else 2)
-		data[o] = sample & 0xFF
-		data[o + 1] = (sample >> 8) & 0xFF
-		if stream.stereo:
-			data[o + 2] = data[o]
-			data[o + 3] = data[o + 1]
+		if not is_loop:
+			# Short one-shots: fast attack, linear decay.
+			var attack := clampf(t / 0.008, 0.0, 1.0)
+			env = attack * clampf(1.0 - t / dur, 0.0, 1.0)
+		# Seam fade for loops so the wrap is inaudible.
+		if is_loop:
+			var edge := 0.04
+			var fade_in := clampf(t / edge, 0.0, 1.0)
+			var fade_out := clampf((dur - t) / edge, 0.0, 1.0)
+			env = minf(fade_in, fade_out)
+		var s_l := 0.0
+		var s_r := 0.0
+		if is_music:
+			# Very quiet low pad + soft brown noise — no piercing mid sine.
+			var pad := (
+				sin(TAU * root * t) * 0.35
+				+ sin(TAU * fifth * t) * 0.22
+				+ sin(TAU * octave * t) * 0.12
+			) * 0.035
+			brown_l = (brown_l + (rng.randf() * 2.0 - 1.0) * 0.02) * 0.98
+			brown_r = (brown_r + (rng.randf() * 2.0 - 1.0) * 0.02) * 0.98
+			s_l = (pad + brown_l * 0.04) * env
+			s_r = (pad * 0.92 + brown_r * 0.05) * env
+		elif is_amb:
+			brown_l = (brown_l + (rng.randf() * 2.0 - 1.0) * 0.03) * 0.97
+			s_l = brown_l * 0.06 * env
+			s_r = s_l
+		elif key.begins_with("shot_") or key == "explosion" or key == "footstep" or key == "impact_world":
+			s_l = (rng.randf() * 2.0 - 1.0) * 0.18 * env
+			s_r = s_l
+		elif key.begins_with("ui_") or key.begins_with("countdown_") or key.begins_with("medal_"):
+			var blip_f := 880.0 + float(abs(hash(key)) % 400)
+			s_l = sin(TAU * blip_f * t) * 0.12 * env
+			s_r = s_l
+		else:
+			# Short soft blip, not a held tone.
+			var f := 180.0 + float(abs(hash(key)) % 220)
+			s_l = sin(TAU * f * t) * 0.1 * env
+			s_r = s_l
+		_write_sample(data, i, stream.stereo, s_l, s_r)
 	stream.data = data
 	if stream.loop_mode == AudioStreamWAV.LOOP_FORWARD:
+		stream.loop_begin = 0
 		stream.loop_end = n
 	return stream
+
+func _write_sample(data: PackedByteArray, i: int, stereo: bool, left: float, right: float) -> void:
+	var sl := int(clampf(left, -1.0, 1.0) * 32767.0)
+	var sr := int(clampf(right, -1.0, 1.0) * 32767.0)
+	var o := i * (4 if stereo else 2)
+	data[o] = sl & 0xFF
+	data[o + 1] = (sl >> 8) & 0xFF
+	if stereo:
+		data[o + 2] = sr & 0xFF
+		data[o + 3] = (sr >> 8) & 0xFF
 
 func play_sfx(sfx_name: String, position: Vector3 = Vector3.INF, pitch: float = 1.0) -> void:
 	var stream: AudioStream = _streams.get(sfx_name) as AudioStream
@@ -155,11 +208,13 @@ func play_music(sfx_name: String, crossfade: float = 1.5) -> void:
 	var incoming: AudioStreamPlayer = _music_b if _music_primary else _music_a
 	var outgoing: AudioStreamPlayer = _music_a if _music_primary else _music_b
 	incoming.stream = stream
+	# Keep placeholder music well under SFX; file music can sit closer to 0 dB.
+	var target_db := -14.0 if not ResourceLoader.exists("res://assets/audio/%s.wav" % sfx_name) else -6.0
 	incoming.volume_db = -40.0
 	incoming.play()
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(incoming, "volume_db", 0.0, crossfade)
+	tw.tween_property(incoming, "volume_db", target_db, crossfade)
 	tw.tween_property(outgoing, "volume_db", -40.0, crossfade)
 	tw.chain().tween_callback(func() -> void:
 		outgoing.stop()

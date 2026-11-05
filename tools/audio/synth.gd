@@ -278,6 +278,13 @@ static func make_loop(x: PackedFloat32Array, loop_len: int) -> PackedFloat32Arra
 	for i in fade:
 		var w := float(i) / float(fade)
 		out[i] = out[i] * w + x[loop_len + i] * (1.0 - w)
+	# Also ease the tail into the head so x[0] ≈ x[end] (avoids seam clicks on noisy beds).
+	var tail_fade: int = mini(fade, maxi(loop_len / 32, 64))
+	for i in tail_fade:
+		var w2 := float(i) / float(tail_fade)
+		var idx: int = loop_len - 1 - i
+		out[idx] = out[idx] * (1.0 - w2) + out[tail_fade - 1 - i] * w2
+	out[loop_len - 1] = out[0]
 	return out
 
 ## Wraps a reverb/delay tail beyond `loop_len` back onto the start (for pattern loops such as music).

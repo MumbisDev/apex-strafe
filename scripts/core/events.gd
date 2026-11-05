@@ -1,0 +1,25 @@
+extends Node
+## Global signal bus. Gameplay emits; presentation listens. Never call UI directly from sim.
+
+signal fighter_spawned(id: int)
+signal fighter_damaged(victim_id: int, attacker_id: int, amount: float, hit_pos: Vector3, is_head: bool)
+signal fighter_killed(victim_id: int, killer_id: int, weapon_id: int, is_head: bool)
+signal fighter_respawned(id: int)
+signal weapon_fired(id: int, weapon_id: int, origin: Vector3, dir: Vector3)
+signal weapon_switched(id: int, weapon_id: int)
+signal pickup_collected(id: int, pickup_type: String, pos: Vector3)
+signal pickup_spawned(pickup_type: String, pos: Vector3)
+signal grapple_attached(id: int, anchor: Vector3)
+signal grapple_released(id: int)
+signal fighter_landed(id: int, speed: float)
+signal fighter_slide_started(id: int)
+signal fighter_wallrun_started(id: int)
+signal explosion(pos: Vector3, radius: float, owner_id: int)
+signal match_started
+signal match_countdown(seconds_left: int)
+signal match_ended(results: Dictionary)
+signal score_changed(id: int, score: int)
+signal medal_awarded(id: int, medal_name: String)
+signal hit_confirmed(attacker_id: int, is_kill: bool, is_head: bool)
+signal powerup_announced(text: String)
+signal message(text: String)

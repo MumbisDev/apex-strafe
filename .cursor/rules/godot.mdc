@@ -1,0 +1,42 @@
+---
+description: APEX STRAFE Godot project rules — read before every change
+alwaysApply: true
+---
+
+# APEX STRAFE — Godot Rules
+
+## Pinned version
+Godot **4.7.2.stable.official** (Forward+). Use only Godot 4 APIs. Forbidden: `KinematicBody`, `move_and_slide(vel, up)`, bare `onready`, `yield`.
+
+## Safety (never violate)
+- Never hand-edit `.godot/`, `*.import`, or `*.uid`.
+- Never delete or weaken a test to make it pass.
+- Never `git reset --hard`, `git push --force`, `git clean -fdx`, or `rm -rf` outside `build/` and temp dirs.
+- No external assets, addons (except editor MCP tooling), fonts, or network downloads. All content is code-generated.
+- Keep godot_ai MCP plugin; do not ship game features that depend on other addons.
+
+## Style
+- GDScript with static typing everywhere (vars, signatures, arrays/dicts).
+- `class_name` for shared types. Signals for decoupling.
+- Tunables in `Resource` configs (`MovementConfig`, `WeaponDef`, `BotProfile`), not magic numbers.
+- Treat untyped-declaration and unsafe-access warnings as errors; fix all warnings.
+- Tiny `.tscn` files; build nodes in `build()` / `_ready()`.
+
+## Architecture
+- Autoloads only: `Events`, `Settings`, `InputSetup`, `Audio`, `Game` (+ MCP helper for tooling).
+- Gameplay sim in `_physics_process` at **120 Hz**. Seeded RNG owned by `MatchManager`.
+- All shared mutations via `MatchManager.auth_*`. Cosmetics listen to `Events`.
+- Fighters collide with `world` only. Hitscan/projectiles: `world` + `hitboxes`.
+
+## Performance
+- Target 144 FPS with 12 fighters. Bot logic ≤ 0.5 ms/bot/tick. No hot-loop allocations.
+
+## Verification loop (every milestone)
+1. Run headless tests: `tools/run_tests.ps1`
+2. Launch game ≥10 s via MCP/CLI; fix every error AND warning
+3. `git commit -m "M<n>: <title>"`
+4. Append to `PROGRESS.md`
+Never start next milestone with failing tests. After 3 failed attempts, use FALLBACK, log in `docs/DECISIONS.md`, move on.
+
+## Folders
+`scripts/{core,fighter,weapons,match,maps,bots,ui,fx}`, `scenes/`, `tests/`, `tools/`, `assets/audio/`, `docs/`

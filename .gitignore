@@ -1,0 +1,25 @@
+# Godot 4+
+.godot/
+/android/
+*.translation
+
+# Editor tooling (not shipped with the game)
+addons/
+godot-git-plugin-v3.3.0/
+demo/
+
+# Secrets
+addons/GD-Sync/keys.cfg
+*.cfg.user
+.env
+
+# Build outputs
+build/
+export/
+*.exe
+*.pck
+*.zip
+
+# OS
+Thumbs.db
+.DS_Store

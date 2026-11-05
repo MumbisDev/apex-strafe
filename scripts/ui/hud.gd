@@ -111,7 +111,7 @@ func set_time_left(seconds: float, overtime: bool = false) -> void:
 		timer_label.text = "OVERTIME"
 		return
 	var s := maxi(0, ceili(seconds))
-	timer_label.text = "%d:%02d" % [s / 60, s % 60]
+	timer_label.text = "%d:%02d" % [floori(s / 60.0), s % 60]
 
 func show_message(text: String, color: Color = UITheme.TEXT) -> void:
 	message_label.text = text
@@ -393,25 +393,38 @@ func _poll_local() -> void:
 		crosshair.grapple_ready = 1.0 - clampf(f.movement.grapple_cd / cd_total, 0.0, 1.0)
 	_apply_inventory(f.inventory)
 
-## Reads WeaponInventory by duck typing (owned: id -> ammo, -1 infinite; current; infinite_ammo).
+## Reads WeaponInventory: owned Array[bool], current_slot, get_ammo(slot).
 func _apply_inventory(inv: Node) -> void:
 	if inv == null:
 		return
-	var owned_v: Variant = inv.get("owned")
-	if not owned_v is Dictionary:
+	var current := int(inv.get("current_slot"))
+	if current <= 0:
 		return
-	var owned := owned_v as Dictionary
-	var current := int(inv.get("current"))
 	if current != _weapon_id:
 		_set_weapon(current)
 	var states := PackedInt32Array()
 	states.resize(WeaponStrip.SLOTS)
+	var owned_v: Variant = inv.get("owned")
+	var global_inf := bool(inv.get("infinite_ammo"))
 	for slot in range(1, WeaponStrip.SLOTS + 1):
-		if owned.has(slot):
-			states[slot - 1] = WeaponStrip.SlotState.OWNED if int(owned[slot]) != 0 else WeaponStrip.SlotState.NO_AMMO
+		var has := false
+		if owned_v is Array:
+			has = slot - 1 < (owned_v as Array).size() and bool((owned_v as Array)[slot - 1])
+		if not has:
+			states[slot - 1] = WeaponStrip.SlotState.EMPTY
+			continue
+		var def := WeaponLibrary.get_def(slot)
+		var is_inf := global_inf or (def != null and def.infinite_ammo)
+		var ammo_i := int(inv.call("get_ammo", slot)) if inv.has_method("get_ammo") else 0
+		if is_inf or ammo_i > 0:
+			states[slot - 1] = WeaponStrip.SlotState.OWNED
+		else:
+			states[slot - 1] = WeaponStrip.SlotState.NO_AMMO
 	weapon_strip.set_states(states, current)
-	var ammo := int(owned.get(current, 0))
-	ammo_label.text = "\u221E" if ammo < 0 or bool(inv.get("infinite_ammo")) else str(ammo)
+	var cur_def := WeaponLibrary.get_def(current)
+	var cur_inf := global_inf or (cur_def != null and cur_def.infinite_ammo)
+	var ammo := int(inv.call("get_ammo", current)) if inv.has_method("get_ammo") else 0
+	ammo_label.text = "\u221E" if cur_inf else str(ammo)
 
 func _set_weapon(weapon_id: int) -> void:
 	_weapon_id = weapon_id

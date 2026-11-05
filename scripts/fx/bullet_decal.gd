@@ -36,7 +36,7 @@ func _ready() -> void:
 	set_process(false)
 
 func place(pos: Vector3, normal: Vector3) -> void:
-	global_transform = Transform3D(FxUtil.basis_up(normal), pos + normal * 0.02)
+	global_transform = Transform3D(FxKit.basis_up(normal), pos + normal * 0.02)
 	_age = 0.0
 	modulate = Color.WHITE
 	visible = true

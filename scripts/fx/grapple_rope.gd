@@ -19,11 +19,11 @@ func _ready() -> void:
 	_mesh = ImmediateMesh.new()
 	var mi := MeshInstance3D.new()
 	mi.mesh = _mesh
-	mi.material_override = FxUtil.unshaded(Color(UITheme.ACCENT, 0.9))
+	mi.material_override = FxKit.unshaded(Color(UITheme.ACCENT, 0.9))
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.extra_cull_margin = 200.0
 	add_child(mi)
-	FxUtil.hide_node(self)
+	FxKit.hide_node(self)
 
 ## `source` supplies the rope start each frame (its aim origin when it has one).
 func attach(source: Node3D, anchor: Vector3) -> void:
@@ -44,7 +44,7 @@ func is_attached() -> bool:
 func _process(delta: float) -> void:
 	_t += delta
 	if _source == null or not is_instance_valid(_source):
-		FxUtil.hide_node(self)
+		FxKit.hide_node(self)
 		return
 	var start := _hand_position()
 	var end := _anchor
@@ -53,7 +53,7 @@ func _process(delta: float) -> void:
 		var k := clampf(_retract_t / RETRACT_TIME, 0.0, 1.0)
 		end = _anchor.lerp(start, k)
 		if k >= 1.0:
-			FxUtil.hide_node(self)
+			FxKit.hide_node(self)
 			return
 	_rebuild(start, end)
 

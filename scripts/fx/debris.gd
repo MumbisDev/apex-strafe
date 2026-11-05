@@ -37,8 +37,8 @@ static func _take_bit() -> RigidBody3D:
 				b.get_parent().remove_child(b)
 			return b
 	var body := RigidBody3D.new()
-	body.collision_layer = FxUtil.LAYER_DEBRIS
-	body.collision_mask = FxUtil.LAYER_WORLD
+	body.collision_layer = FxKit.LAYER_DEBRIS
+	body.collision_mask = FxKit.LAYER_WORLD
 	body.mass = 0.3
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()

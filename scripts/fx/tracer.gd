@@ -20,13 +20,13 @@ var _thickness: float = THICKNESS
 func _ready() -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3(1, 1, 1)
-	_mat = FxUtil.unshaded(Color.WHITE)
+	_mat = FxKit.unshaded(Color.WHITE)
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = box
 	_mesh.material_override = _mat
 	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_mesh)
-	FxUtil.hide_node(self)
+	FxKit.hide_node(self)
 
 ## linger > 0 keeps the full beam visible and fades it over that many seconds (railgun).
 func play(from: Vector3, to: Vector3, color: Color, linger: float = 0.0) -> void:
@@ -62,4 +62,4 @@ func _update(t: float) -> void:
 		alpha = 1.0 - (t - arrive) / _linger
 	_mat.albedo_color = Color(_color.r, _color.g, _color.b, clampf(alpha, 0.0, 1.0))
 	if (_linger > 0.0 and alpha <= 0.0) or (_linger <= 0.0 and tail >= _length):
-		FxUtil.hide_node(self)
+		FxKit.hide_node(self)

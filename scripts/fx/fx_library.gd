@@ -125,7 +125,7 @@ func _fill(ring: Ring, count: int, kind: GDScript) -> void:
 		ring.items.append(n)
 
 func _spread(dir: Vector3, deg: float) -> Vector3:
-	var basis := FxUtil.basis_up(dir)
+	var basis := FxKit.basis_up(dir)
 	var yaw := deg_to_rad(_rng.randf_range(-deg, deg))
 	var pitch := deg_to_rad(_rng.randf_range(-deg, deg))
 	return (dir + basis.x * tan(yaw) + basis.z * tan(pitch)).normalized()

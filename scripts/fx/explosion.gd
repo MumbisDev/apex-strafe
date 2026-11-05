@@ -18,11 +18,11 @@ var _radius: float = 4.5
 var _t: float = 0.0
 
 func _ready() -> void:
-	_fire_mat = FxUtil.unshaded(Color(1.0, 0.55, 0.15, 0.9))
+	_fire_mat = FxKit.unshaded(Color(1.0, 0.55, 0.15, 0.9))
 	_fireball = MeshInstance3D.new()
-	_fireball.mesh = FxUtil.sphere_mesh(1.0, 12)
+	_fireball.mesh = FxKit.sphere_mesh(1.0, 12)
 	_fireball.material_override = _fire_mat
-	_ring_mat = FxUtil.unshaded(Color(1.0, 0.8, 0.5, 0.8))
+	_ring_mat = FxKit.unshaded(Color(1.0, 0.8, 0.5, 0.8))
 	_ring = MeshInstance3D.new()
 	var torus := TorusMesh.new()
 	torus.inner_radius = 0.92
@@ -31,11 +31,11 @@ func _ready() -> void:
 	torus.ring_segments = 6
 	_ring.mesh = torus
 	_ring.material_override = _ring_mat
-	_fire = FxUtil.burst(28, 0.7, FxUtil.sphere_mesh(0.25, 6), FxUtil.unshaded(Color.WHITE),
-		FxUtil.process_material(Vector3.UP, 180.0, 3.0, 9.0, Vector3(0, 1.5, 0), 0.5, 1.4,
+	_fire = FxKit.burst(28, 0.7, FxKit.sphere_mesh(0.25, 6), FxKit.unshaded(Color.WHITE),
+		FxKit.process_material(Vector3.UP, 180.0, 3.0, 9.0, Vector3(0, 1.5, 0), 0.5, 1.4,
 			[Color(1.0, 0.95, 0.6, 1.0), Color(1.0, 0.45, 0.1, 0.8), Color(0.3, 0.05, 0.0, 0.0)]))
-	_smoke = FxUtil.burst(16, DURATION - 0.1, FxUtil.sphere_mesh(0.45, 6), FxUtil.unshaded(Color.WHITE, false),
-		FxUtil.process_material(Vector3.UP, 120.0, 1.0, 4.0, Vector3(0, 1.2, 0), 0.8, 2.0,
+	_smoke = FxKit.burst(16, DURATION - 0.1, FxKit.sphere_mesh(0.45, 6), FxKit.unshaded(Color.WHITE, false),
+		FxKit.process_material(Vector3.UP, 120.0, 1.0, 4.0, Vector3(0, 1.2, 0), 0.8, 2.0,
 			[Color(0.25, 0.25, 0.25, 0.0), Color(0.2, 0.2, 0.22, 0.55), Color(0.1, 0.1, 0.1, 0.0)]))
 	_light = OmniLight3D.new()
 	_light.light_color = Color(1.0, 0.6, 0.25)
@@ -44,7 +44,7 @@ func _ready() -> void:
 		add_child(n)
 	for g: GeometryInstance3D in [_fireball, _ring]:
 		g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	FxUtil.hide_node(self)
+	FxKit.hide_node(self)
 
 func play(pos: Vector3, radius: float) -> void:
 	global_position = pos
@@ -56,8 +56,8 @@ func play(pos: Vector3, radius: float) -> void:
 	_ring.scale = Vector3.ONE * 0.1
 	visible = true
 	set_process(true)
-	FxUtil.fire(_fire)
-	FxUtil.fire(_smoke)
+	FxKit.fire(_fire)
+	FxKit.fire(_smoke)
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -73,4 +73,4 @@ func _process(delta: float) -> void:
 	_light.light_energy = 6.0 * clampf(1.0 - _t / LIGHT_TIME, 0.0, 1.0)
 	_light.visible = _t < LIGHT_TIME
 	if _t >= DURATION:
-		FxUtil.hide_node(self)
+		FxKit.hide_node(self)

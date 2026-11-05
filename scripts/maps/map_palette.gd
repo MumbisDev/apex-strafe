@@ -162,7 +162,7 @@ static func sprawl() -> MapPalette:
 	p.sun_rotation_deg = Vector3(-30.0, 60.0, 0.0)
 	return p
 
-static func practice_range() -> MapPalette:
+static func practice() -> MapPalette:
 	var p := MapPalette.new()
 	p.id = "range"
 	p.floor_color = Color(0.3, 0.32, 0.36)

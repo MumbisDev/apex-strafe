@@ -41,3 +41,5 @@ Format: `YYYY-MM-DD | decision | reason`
 2026-11-05 | Bunnyhop reaching 15 m/s (Nightmare) and 11-13 m/s (Veteran) is untuned | Needs a movement sim or the soak test; the air-strafe logic (alternate strafe toward the turn, yaw rate scaled by skill) is implemented but not measured.
 2026-11-05 | Soak test FALLBACK: 45 s sim + early-exit + quick waypoint graph (spawn/pickup mesh) | Full 180 s x 3 maps with raycast WaypointGraph.generate hung CI; pass gates scaled to >=8 kills / every bot fires / <2 teleports.
 2026-11-05 | MatchScene builds WaypointGraph after two physics frames | Bots had no nav graph; BotNavigator.graph_from_map also accepts meta keys.
+2026-11-05 | M1/M2/M6/M7 are allow-empty verification commits after bulk M0 parallel land | GDD wants one commit per milestone; core already shipped in M0 so empty commits document verification without rewriting history.
+

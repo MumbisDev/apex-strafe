@@ -8,6 +8,10 @@
 
 config_version=5
 
+[GD-Sync]
+
+version="1.0.2"
+
 [application]
 
 config/name="APEX STRAFE"
@@ -23,7 +27,9 @@ Settings="*res://scripts/core/settings.gd"
 InputSetup="*res://scripts/core/input_setup.gd"
 Audio="*res://scripts/core/audio.gd"
 Game="*res://scripts/core/game.gd"
+NetSession="*res://scripts/core/net_session.gd"
 _mcp_game_helper="*res://addons/godot_ai/runtime/game_helper.gd"
+GDSync="*res://addons/GD-Sync/MultiplayerClient.gd"
 
 [debug]
 
@@ -41,7 +47,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
+enabled=PackedStringArray("res://addons/GD-Sync/plugin.cfg", "res://addons/godot_ai/plugin.cfg")
 
 [layer_names]
 

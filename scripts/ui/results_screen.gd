@@ -167,6 +167,9 @@ func _buttons() -> Control:
 	return h
 
 func _on_change_settings() -> void:
+	if Game.match_config != null and Game.match_config.online:
+		Game.go_multiplayer()
+		return
 	get_tree().change_scene_to_file(SETUP_SCENE)
 
 # -- side effects (once per screen) -----------------------------------------------

@@ -10,6 +10,7 @@ const SCENE_LOADING := "res://scenes/loading.tscn"
 const SCENE_MATCH := "res://scenes/match.tscn"
 const SCENE_PRACTICE := "res://scenes/practice.tscn"
 const SCENE_RESULTS := "res://scenes/results.tscn"
+const SCENE_MULTIPLAYER := "res://scenes/multiplayer_menu.tscn"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -36,8 +37,22 @@ func go_practice() -> void:
 	match_config.practice = true
 	match_config.map_id = "range"
 	match_config.bot_count = 0
+	match_config.online = false
 	_unpause()
 	get_tree().change_scene_to_file(SCENE_PRACTICE)
+
+func go_multiplayer() -> void:
+	_unpause()
+	Engine.time_scale = 1.0
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file(SCENE_MULTIPLAYER)
+
+func go_online_match(cfg: MatchConfig) -> void:
+	match_config = cfg
+	match_config.online = true
+	_unpause()
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	get_tree().change_scene_to_file(SCENE_LOADING)
 
 func go_match_setup_then_load(cfg: MatchConfig) -> void:
 	match_config = cfg
@@ -74,6 +89,10 @@ func resume() -> void:
 func restart_match() -> void:
 	_unpause()
 	Engine.time_scale = 1.0
+	if match_config != null and match_config.online:
+		# Online rematch returns to the lobby; host starts a new round.
+		go_multiplayer()
+		return
 	match_config.seed = int(Time.get_unix_time_from_system())
 	get_tree().change_scene_to_file(SCENE_LOADING)
 

@@ -49,7 +49,14 @@ func alloc_id() -> int:
 	_next_id += 1
 	return id
 
+func is_sim_authority() -> bool:
+	if config == null or not config.online:
+		return true
+	return NetSession.is_host()
+
 func auth_apply_damage(victim_id: int, info: DamageInfo) -> void:
+	if not is_sim_authority():
+		return
 	if phase != Phase.LIVE and phase != Phase.OVERTIME:
 		return
 	var victim: Fighter = fighters.get(victim_id) as Fighter
@@ -72,6 +79,8 @@ func auth_apply_damage(victim_id: int, info: DamageInfo) -> void:
 		auth_kill(victim_id, info)
 
 func auth_kill(victim_id: int, info: DamageInfo) -> void:
+	if not is_sim_authority():
+		return
 	var victim: Fighter = fighters.get(victim_id) as Fighter
 	if victim == null:
 		return
@@ -99,6 +108,8 @@ func auth_kill(victim_id: int, info: DamageInfo) -> void:
 	_check_end_conditions(killer_id)
 
 func auth_request_respawn(id: int) -> void:
+	if not is_sim_authority():
+		return
 	var f: Fighter = fighters.get(id) as Fighter
 	if f == null or f.health.alive:
 		return
@@ -111,6 +122,10 @@ func auth_request_respawn(id: int) -> void:
 	f.visible = true
 	Events.fighter_respawned.emit(id)
 	_log("respawn %d" % id)
+	if config != null and config.online:
+		var parent := get_parent()
+		if parent != null and parent.get("net_bridge") != null:
+			parent.net_bridge.call("broadcast_respawn", id, f.global_position, f.movement.yaw)
 
 func auth_collect_pickup(fighter_id: int, pickup_id: int) -> bool:
 	var parent := get_parent()
@@ -119,6 +134,8 @@ func auth_collect_pickup(fighter_id: int, pickup_id: int) -> bool:
 	return false
 
 func auth_void_death(victim_id: int) -> void:
+	if not is_sim_authority():
+		return
 	var victim: Fighter = fighters.get(victim_id) as Fighter
 	if victim == null or not victim.health.alive:
 		return
@@ -138,6 +155,8 @@ func auth_void_death(victim_id: int) -> void:
 	auth_kill(victim_id, info)
 
 func _physics_process(dt: float) -> void:
+	# Clients still advance cosmetic phases in lockstep with host via shared timers;
+	# end/results are host-broadcast when online.
 	match phase:
 		Phase.INTRO:
 			intro_t -= dt
@@ -159,6 +178,8 @@ func _physics_process(dt: float) -> void:
 				Audio.play_ui("countdown_go")
 				Audio.play_music("music_match_a")
 		Phase.LIVE, Phase.OVERTIME:
+			if not is_sim_authority():
+				return
 			if config.time_limit_sec > 0 and phase == Phase.LIVE:
 				time_left -= dt
 				if time_left <= 0.0:
@@ -168,12 +189,19 @@ func _physics_process(dt: float) -> void:
 					else:
 						_begin_ending()
 		Phase.ENDING:
+			if not is_sim_authority():
+				return
 			ending_t -= dt
 			if ending_t <= 0.0:
 				Engine.time_scale = 1.0
 				phase = Phase.RESULTS
 				var results := scoring.build_results(self)
 				Events.match_ended.emit(results)
+				if config != null and config.online:
+					var parent := get_parent()
+					if parent != null and parent.get("net_bridge") != null:
+						parent.net_bridge.call("broadcast_end", results)
+						return
 				Game.go_results(results)
 
 func _unfreeze_all() -> void:
@@ -187,6 +215,8 @@ func freeze_all() -> void:
 		f.frozen = true
 
 func _check_end_conditions(killer_id: int) -> void:
+	if not is_sim_authority():
+		return
 	if phase != Phase.LIVE and phase != Phase.OVERTIME:
 		return
 	if phase == Phase.OVERTIME:

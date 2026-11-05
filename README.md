@@ -34,6 +34,17 @@ $env:GODOT = "C:\Users\boutt\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.
 
 - **Deathmatch** vs 1–11 bots (maps: Foundry, Spire, Sprawl)
 - **Practice Range** — movement course + shooting gallery
+- **Multiplayer** — private lobby codes via GD-Sync (no port forwarding)
+
+### Multiplayer (friends)
+
+1. In Godot: **Project → Tools → GD-Sync** and confirm your API keys are set (`addons/GD-Sync/keys.cfg`, gitignored).
+2. Host: Main Menu → **MULTIPLAYER** → **HOST LOBBY** → share the 6-character code.
+3. Friends: same screen → enter code → **JOIN**.
+4. Host picks map / bot fill / limits → **START MATCH**.
+5. After the match, **REMATCH** returns everyone to the lobby.
+
+Uses GD-Sync cloud relay. Host is combat authority; each client owns their movement.
 
 ## Tests
 

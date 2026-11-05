@@ -14,6 +14,7 @@ enum Mutator { LOW_GRAVITY, INSTAGIB, ROCKETS_ONLY }
 @export var mutators: Array[int] = []
 @export var seed: int = 0
 @export var practice: bool = false
+@export var online: bool = false
 
 func duplicate_config() -> MatchConfig:
 	var c := MatchConfig.new()
@@ -27,6 +28,39 @@ func duplicate_config() -> MatchConfig:
 	c.mutators = mutators.duplicate()
 	c.seed = seed
 	c.practice = practice
+	c.online = online
+	return c
+
+func to_net_dict() -> Dictionary:
+	return {
+		"map_id": map_id,
+		"bot_count": bot_count,
+		"difficulty": int(difficulty),
+		"kill_limit": kill_limit,
+		"time_limit_sec": time_limit_sec,
+		"powerups_enabled": powerups_enabled,
+		"pickup_respawn_scale": pickup_respawn_scale,
+		"mutators": mutators.duplicate(),
+		"seed": seed,
+		"online": true,
+	}
+
+static func from_net_dict(d: Dictionary) -> MatchConfig:
+	var c := MatchConfig.new()
+	c.map_id = str(d.get("map_id", "foundry"))
+	c.bot_count = int(d.get("bot_count", 0))
+	c.difficulty = int(d.get("difficulty", Difficulty.VETERAN)) as Difficulty
+	c.kill_limit = int(d.get("kill_limit", 25))
+	c.time_limit_sec = int(d.get("time_limit_sec", 480))
+	c.powerups_enabled = bool(d.get("powerups_enabled", true))
+	c.pickup_respawn_scale = float(d.get("pickup_respawn_scale", 1.0))
+	var muts: Array = d.get("mutators", []) as Array
+	c.mutators.clear()
+	for m in muts:
+		c.mutators.append(int(m))
+	c.seed = int(d.get("seed", 0))
+	c.online = true
+	c.practice = false
 	return c
 
 func has_mutator(m: Mutator) -> bool:

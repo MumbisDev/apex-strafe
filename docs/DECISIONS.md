@@ -43,3 +43,6 @@ Format: `YYYY-MM-DD | decision | reason`
 2026-11-05 | MatchScene builds WaypointGraph after two physics frames | Bots had no nav graph; BotNavigator.graph_from_map also accepts meta keys.
 2026-11-05 | M1/M2/M6/M7 are allow-empty verification commits after bulk M0 parallel land | GDD wants one commit per milestone; core already shipped in M0 so empty commits document verification without rewriting history.
 
+2026-11-05 | Allow GD-Sync as networking addon exception | Friends multiplayer without port-forwarding via private lobby codes; keys stay gitignored in addons/GD-Sync/keys.cfg.
+2026-11-05 | Online combat is host-authoritative; movement is client-owned via RemoteInput pose sync | Matches GDD Section 18 network-ready design with GD-Sync call_func relay.
+

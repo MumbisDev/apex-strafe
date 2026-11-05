@@ -44,10 +44,7 @@ func _build() -> void:
 
 	left.add_child(_btn("PLAY", _on_play))
 	left.add_child(_btn("PRACTICE RANGE", _on_practice))
-	var mp := _btn("MULTIPLAYER", func() -> void: pass)
-	mp.disabled = true
-	mp.tooltip_text = "Coming soon"
-	left.add_child(mp)
+	left.add_child(_btn("MULTIPLAYER", _on_multiplayer))
 	left.add_child(_btn("SETTINGS", _on_settings))
 	left.add_child(_btn("QUIT", _on_quit))
 
@@ -127,6 +124,9 @@ func _on_play() -> void:
 
 func _on_practice() -> void:
 	Game.go_practice()
+
+func _on_multiplayer() -> void:
+	Game.go_multiplayer()
 
 func _on_settings() -> void:
 	get_tree().change_scene_to_file("res://scenes/settings_menu.tscn")

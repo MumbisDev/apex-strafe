@@ -12,8 +12,8 @@ Godot **4.7.2.stable.official** (Forward+). Use only Godot 4 APIs. Forbidden: `K
 - Never hand-edit `.godot/`, `*.import`, or `*.uid`.
 - Never delete or weaken a test to make it pass.
 - Never `git reset --hard`, `git push --force`, `git clean -fdx`, or `rm -rf` outside `build/` and temp dirs.
-- No external assets, addons (except editor MCP tooling), fonts, or network downloads. All content is code-generated.
-- Keep godot_ai MCP plugin; do not ship game features that depend on other addons.
+- No external assets, fonts, or network downloads. All content is code-generated except networking.
+- Allowed addons: `godot_ai` (editor MCP) and `GD-Sync` (cloud multiplayer / private lobbies). Do not add others for gameplay.
 
 ## Style
 - GDScript with static typing everywhere (vars, signatures, arrays/dicts).

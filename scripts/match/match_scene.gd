@@ -5,6 +5,7 @@ var mm: MatchManager
 var map_data: Dictionary = {}
 var waypoint_graph: WaypointGraph
 var pickup_spawner: PickupSpawner
+var net_bridge: Node = null
 var hud: CanvasLayer
 var pause_ui: Control
 var debug_on: bool = false
@@ -25,6 +26,11 @@ func _ready() -> void:
 	_build_waypoints()
 	if not Game.match_config.has_mutator(MatchConfig.Mutator.INSTAGIB):
 		pickup_spawner.spawn_from_markers(self, map_data.get("pickups", []))
+	if Game.match_config.online:
+		var bridge_script: GDScript = load("res://scripts/match/net_bridge.gd") as GDScript
+		net_bridge = bridge_script.new()
+		add_child(net_bridge)
+		net_bridge.call("setup", mm)
 	_spawn_fighters()
 	mm.freeze_all()
 	_build_hud()
@@ -135,6 +141,9 @@ func _fallback_box_map() -> Dictionary:
 
 func _spawn_fighters() -> void:
 	var spawns: Array = map_data.get("spawns", [{"pos": Vector3(0, 2, 0), "yaw": 0.0}])
+	if Game.match_config.online:
+		_spawn_online_fighters(spawns)
+		return
 	var player := Fighter.new()
 	player.id = mm.alloc_id()
 	player.display_name = "You"
@@ -148,7 +157,47 @@ func _spawn_fighters() -> void:
 	mm.local_player_id = player.id
 	mm.auth_register_fighter(player)
 	player.frozen = true
+	_spawn_bots(spawns, 1)
 
+func _spawn_online_fighters(spawns: Array) -> void:
+	var peers: Array[int] = NetSession.peer_ids.duplicate()
+	if peers.is_empty():
+		peers.append(NetSession.local_client_id())
+	peers.sort()
+	var local_id := NetSession.local_client_id()
+	var idx := 0
+	for peer_id in peers:
+		var f := Fighter.new()
+		f.id = peer_id
+		f.display_name = "P%d" % peer_id
+		f.color = UITheme.BOT_COLORS[idx % UITheme.BOT_COLORS.size()] if UITheme.BOT_COLORS.size() > 0 else UITheme.ACCENT
+		add_child(f)
+		var si: Dictionary = spawns[idx % spawns.size()]
+		f.global_position = si["pos"]
+		f.movement.yaw = float(si["yaw"])
+		if peer_id == local_id:
+			f.display_name = "You"
+			f.color = UITheme.ACCENT
+			f.setup_player()
+			mm.local_player_id = peer_id
+		else:
+			var ri := RemoteInput.new()
+			f.is_bot = false
+			f.input_source = ri
+			if f.camera_rig:
+				f.camera_rig.set_active(false)
+			if f.visual:
+				f.visual.set_first_person_hidden(false)
+		_attach_inventory(f)
+		mm.auth_register_fighter(f)
+		f.frozen = true
+		idx += 1
+	# Only host simulates bot fill
+	if NetSession.is_host() and Game.match_config.bot_count > 0:
+		mm._next_id = 10000
+		_spawn_bots(spawns, idx)
+
+func _spawn_bots(spawns: Array, spawn_offset: int) -> void:
 	var bot_count := Game.match_config.bot_count
 	for i in bot_count:
 		var bot := Fighter.new()
@@ -158,7 +207,7 @@ func _spawn_fighters() -> void:
 		add_child(bot)
 		var input_src: InputSource = _make_bot_input(bot, i)
 		bot.setup_bot(input_src)
-		var si: Dictionary = spawns[(i + 1) % spawns.size()]
+		var si: Dictionary = spawns[(spawn_offset + i) % spawns.size()]
 		bot.global_position = si["pos"]
 		bot.movement.yaw = float(si["yaw"])
 		_attach_inventory(bot)
@@ -185,7 +234,10 @@ func _attach_inventory(f: Fighter) -> void:
 	inv.aim_provider = func() -> Transform3D:
 		return Transform3D(Basis.from_euler(Vector3(f.movement.pitch, f.movement.yaw, 0)), f.aim_origin())
 	inv.damage_sink = func(victim_id: int, info: DamageInfo) -> void:
-		mm.auth_apply_damage(victim_id, info)
+		if net_bridge != null and Game.match_config.online:
+			net_bridge.call("route_damage", victim_id, info)
+		else:
+			mm.auth_apply_damage(victim_id, info)
 	if mm and mm.rng:
 		inv.rng = mm.rng
 	inv.refresh_excludes()

@@ -78,16 +78,20 @@ static func graph_from(source: Variant) -> AStar3D:
 			return graph_from(d["waypoints"])
 	return null
 
-## Looks for a graph on a map/match scene root (`waypoint_graph` property or `map_data`).
+## Looks for a graph on a map/match scene root (`waypoint_graph` property/meta or `map_data`).
 static func graph_from_map(map_root: Node) -> AStar3D:
 	if map_root == null:
 		return null
-	for prop in ["waypoint_graph", "map_data"]:
+	for prop in ["waypoint_graph", "map_data", "astar"]:
 		var v: Variant = map_root.get(prop)
 		if v != null:
 			var g: AStar3D = graph_from(v)
 			if g != null:
 				return g
+		if map_root.has_meta(prop):
+			var g2: AStar3D = graph_from(map_root.get_meta(prop))
+			if g2 != null:
+				return g2
 	return null
 
 ## Global per-physics-tick path query budget. `frame < 0` uses the engine's physics frame.

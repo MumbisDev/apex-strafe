@@ -3,6 +3,7 @@ extends Node3D
 
 var mm: MatchManager
 var map_data: Dictionary = {}
+var waypoint_graph: WaypointGraph
 var pickup_spawner: PickupSpawner
 var hud: CanvasLayer
 var pause_ui: Control
@@ -19,12 +20,22 @@ func _ready() -> void:
 	_build_map()
 	mm.setup(Game.match_config, self)
 	mm.spawn_system.set_spawns(map_data.get("spawns", []))
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_build_waypoints()
 	if not Game.match_config.has_mutator(MatchConfig.Mutator.INSTAGIB):
 		pickup_spawner.spawn_from_markers(self, map_data.get("pickups", []))
 	_spawn_fighters()
 	mm.freeze_all()
 	_build_hud()
 	_build_pause()
+
+func _build_waypoints() -> void:
+	waypoint_graph = WaypointGraph.new()
+	if map_data.is_empty():
+		return
+	if not waypoint_graph.generate(get_world_3d(), map_data):
+		push_warning("WaypointGraph generate failed for %s" % Game.match_config.map_id)
 
 func _build_map() -> void:
 	var map_id := Game.match_config.map_id

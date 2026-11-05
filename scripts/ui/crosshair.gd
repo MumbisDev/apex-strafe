@@ -32,7 +32,7 @@ var _indicators: Array[Vector2] = [] ## x = angle (0 = ahead, +right), y = age
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	apply_settings()
 
 func apply_settings() -> void:

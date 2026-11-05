@@ -261,7 +261,9 @@ func _build_hud() -> void:
 	add_child(hud)
 	var hud_script = load("res://scripts/ui/hud.gd")
 	if hud_script:
-		var h = hud_script.new()
+		var h: Control = hud_script.new() as Control
+		# Size before enter-tree so _ready/_place see a real viewport rect.
+		h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		hud.add_child(h)
 		if h.has_method("bind"):
 			h.bind(mm)

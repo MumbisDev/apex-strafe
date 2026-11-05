@@ -75,9 +75,23 @@ static func ordinal(n: int) -> String:
 func _ready() -> void:
 	theme = UITheme.build()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# CanvasLayer is not a Control; set_anchors_preset alone can leave size 0x0
+	# (children then pile up / clip at the top-left). Force full-viewport fill.
+	_fit_to_viewport()
+	var vp := get_viewport()
+	if vp != null and not vp.size_changed.is_connected(_fit_to_viewport):
+		vp.size_changed.connect(_fit_to_viewport)
 	_build()
 	_connect_events()
+
+func _fit_to_viewport() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var vr := vp.get_visible_rect().size
+	if vr.x > 1.0 and vr.y > 1.0 and size != vr:
+		size = vr
 
 ## Hooks the HUD to a running match: roster, local camera, shake, world FX.
 func bind(mm: MatchManager) -> void:
@@ -134,7 +148,7 @@ func _build() -> void:
 	add_child(crosshair)
 	_number_layer = Control.new()
 	_number_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_number_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_number_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_number_layer)
 	for i in NUMBER_POOL:
 		var l := _label(22)

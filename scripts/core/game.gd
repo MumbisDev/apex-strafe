@@ -30,6 +30,11 @@ func go_menu() -> void:
 	_unpause()
 	Engine.time_scale = 1.0
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# Leaving the main menu flow drops any private lobby so host/join isn't stuck.
+	if NetSession != null and not NetSession.lobby_code.is_empty():
+		NetSession.leave()
+	if match_config != null:
+		match_config.online = false
 	get_tree().change_scene_to_file(SCENE_MENU)
 
 func go_practice() -> void:
@@ -68,6 +73,9 @@ func go_match() -> void:
 	get_tree().change_scene_to_file(SCENE_MATCH)
 
 func go_results(results: Dictionary) -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.name == "Results":
+		return
 	_unpause()
 	Engine.time_scale = 1.0
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -92,6 +100,9 @@ func restart_match() -> void:
 	if match_config != null and match_config.online:
 		# Online rematch returns to the lobby; host starts a new round.
 		go_multiplayer()
+		return
+	if match_config != null and match_config.practice:
+		go_practice()
 		return
 	match_config.seed = int(Time.get_unix_time_from_system())
 	get_tree().change_scene_to_file(SCENE_LOADING)

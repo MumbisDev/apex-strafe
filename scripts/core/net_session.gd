@@ -97,6 +97,7 @@ func leave() -> void:
 	peer_ids.clear()
 	_pending_host = false
 	_pending_join_code = ""
+	_connecting = false
 	roster_changed.emit()
 	status_changed.emit("Left lobby")
 

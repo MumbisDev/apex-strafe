@@ -4,6 +4,7 @@ var player: Fighter
 var mm: MatchManager
 var speed_label: Label
 var debug_on: bool = false
+var pause_ui: Control = null
 
 func _ready() -> void:
 	name = "Practice"
@@ -56,6 +57,20 @@ func _ready() -> void:
 	mm.local_player_id = player.id
 	mm.auth_register_fighter(player)
 	_build_hud()
+	_build_pause()
+
+func set_pause_visible(on: bool) -> void:
+	if pause_ui:
+		pause_ui.visible = on
+
+func _build_pause() -> void:
+	var pause_script: GDScript = load("res://scripts/ui/pause_menu.gd") as GDScript
+	if pause_script == null:
+		return
+	pause_ui = pause_script.new() as Control
+	pause_ui.visible = false
+	pause_ui.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(pause_ui)
 
 func _simple_range() -> Dictionary:
 	var floor_mi := MeshInstance3D.new()
@@ -125,7 +140,7 @@ func _build_hud() -> void:
 	speed_label.add_theme_color_override("font_color", UITheme.ACCENT)
 	layer.add_child(speed_label)
 	var hint := Label.new()
-	hint.text = "PRACTICE  |  R reset  |  Esc menu  |  F3 debug"
+	hint.text = "PRACTICE  |  R reset  |  Esc pause / leave  |  F3 debug"
 	hint.position = Vector2(40, 80)
 	hint.add_theme_color_override("font_color", UITheme.TEXT_DIM)
 	layer.add_child(hint)

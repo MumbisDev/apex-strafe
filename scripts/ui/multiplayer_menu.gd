@@ -24,9 +24,21 @@ func _ready() -> void:
 	_cfg = MatchConfig.new()
 	_cfg.online = true
 	_cfg.bot_count = 0
+	# Returning from a finished match: restore lobby options from the live session.
+	if Game.match_config != null and Game.match_config.online:
+		_cfg.kill_limit = Game.match_config.kill_limit
+		_cfg.time_limit_sec = Game.match_config.time_limit_sec
+		_cfg.map_id = Game.match_config.map_id
+		_cfg.bot_count = Game.match_config.bot_count
+		_cfg.difficulty = Game.match_config.difficulty
+	var lobby_data := NetSession.get_lobby_match_data()
+	if not lobby_data.is_empty():
+		_cfg = MatchConfig.from_net_dict(lobby_data)
+		_cfg.online = true
 	_build()
 	_wire_session()
 	NetSession.connect_cloud()
+	_restore_lobby_ui()
 
 func _exit_tree() -> void:
 	_unwire_session()
@@ -225,11 +237,33 @@ func _on_lobby_failed(msg: String) -> void:
 
 func _on_host() -> void:
 	Audio.play_ui("ui_confirm")
+	# Re-host after a match: leave the old lobby first so create isn't rejected.
+	if not NetSession.lobby_code.is_empty():
+		NetSession.leave()
 	NetSession.host_lobby()
 
 func _on_join() -> void:
 	Audio.play_ui("ui_confirm")
+	if not NetSession.lobby_code.is_empty():
+		NetSession.leave()
 	NetSession.join_lobby(_join_edit.text)
+
+func _restore_lobby_ui() -> void:
+	if NetSession.lobby_code.is_empty():
+		_code_label.text = "Lobby: —"
+		_update_host_ui()
+		return
+	_code_label.text = "Lobby: %s" % NetSession.lobby_code
+	_map_label.text = "Map: %s" % _cfg.map_id
+	_bots_label.text = "Bot fill: %d" % _cfg.bot_count
+	_kill_label.text = "Kill limit: %d" % _cfg.kill_limit
+	_time_label.text = "Time: %s" % _fmt_time(_cfg.time_limit_sec)
+	_refresh_roster()
+	_update_host_ui()
+	if NetSession.is_online:
+		_status.text = "In lobby %s" % NetSession.lobby_code
+	else:
+		_status.text = "Reconnecting…"
 
 func _on_copy() -> void:
 	if NetSession.lobby_code.is_empty():

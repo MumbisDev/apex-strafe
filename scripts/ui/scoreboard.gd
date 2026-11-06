@@ -41,12 +41,21 @@ func clear_stats() -> void:
 func set_score(id: int, score: int) -> void:
 	_ensure(id)["score"] = score
 
+## Absolute sync from MatchManager / network snapshot (avoids double-count and score/kill drift).
+func set_stats(id: int, score: int, kills: int, deaths: int) -> void:
+	var st := _ensure(id)
+	st["score"] = score
+	st["kills"] = kills
+	st["deaths"] = deaths
+
 func record_kill(killer_id: int, victim_id: int) -> void:
 	if killer_id != victim_id and killer_id >= 0:
 		var k := _ensure(killer_id)
 		k["kills"] = int(k["kills"]) + 1
 	var v := _ensure(victim_id)
 	v["deaths"] = int(v["deaths"]) + 1
+	if visible:
+		refresh()
 
 func get_score(id: int) -> int:
 	return int(_ensure(id)["score"])

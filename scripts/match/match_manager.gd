@@ -201,7 +201,7 @@ func _physics_process(dt: float) -> void:
 					var parent := get_parent()
 					if parent != null and parent.get("net_bridge") != null:
 						parent.net_bridge.call("broadcast_end", results)
-						return
+				# Host always transitions locally; clients arrive via rpc_end_match.
 				Game.go_results(results)
 
 func _unfreeze_all() -> void:

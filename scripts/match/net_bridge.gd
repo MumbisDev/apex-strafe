@@ -209,6 +209,9 @@ func broadcast_end(results: Dictionary) -> void:
 	_gds.call("call_func_all", Callable(self, "rpc_end_match"), results)
 
 func rpc_end_match(results: Dictionary) -> void:
+	# Host already transitions in MatchManager; call_func_all may still invoke here.
+	if NetSession.is_host():
+		return
 	Engine.time_scale = 1.0
 	Events.match_ended.emit(results)
 	Game.go_results(results)

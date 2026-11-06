@@ -290,7 +290,10 @@ func _on_fighter_killed(victim_id: int, killer_id: int, weapon_id: int, is_head:
 	var ki := scoreboard.get_info(killer_id)
 	kill_feed.add_entry(str(ki["name"]), ki["color"] as Color, weapon_id, str(vi["name"]),
 		vi["color"] as Color, is_head, victim_id == local_id or killer_id == local_id)
-	scoreboard.record_kill(killer_id, victim_id)
+	_sync_scoreboard_from_mm(killer_id)
+	_sync_scoreboard_from_mm(victim_id)
+	if scoreboard.visible:
+		scoreboard.refresh()
 	if killer_id == local_id and killer_id != victim_id:
 		_weapon_kills[weapon_id] = int(_weapon_kills.get(weapon_id, 0)) + 1
 		_streak += 1
@@ -318,7 +321,10 @@ func _on_pickup_collected(id: int, pickup_type: String, _pos: Vector3) -> void:
 		show_message(str(PICKUP_TEXT.get(pickup_type.to_upper(), pickup_type.replace("_", " ").to_upper())))
 
 func _on_score_changed(id: int, score: int) -> void:
-	scoreboard.set_score(id, score)
+	_sync_scoreboard_from_mm(id)
+	# Keep score from the event if the fighter node is gone mid-teardown.
+	if scoreboard.get_score(id) != score and (_mm == null or _mm.get_fighter(id) == null):
+		scoreboard.set_score(id, score)
 	if scoreboard.visible:
 		scoreboard.refresh()
 	_refresh_info()
@@ -330,6 +336,17 @@ func _on_score_changed(id: int, score: int) -> void:
 		elif not leader and _was_leader:
 			show_message("LEAD LOST", UITheme.WARN)
 	_was_leader = leader
+
+
+func _sync_scoreboard_from_mm(id: int) -> void:
+	if _mm == null:
+		return
+	var f: Fighter = _mm.get_fighter(id)
+	var sc: int = int(_mm.scores.get(id, 0))
+	if f != null:
+		scoreboard.set_stats(id, sc, f.kills, f.deaths)
+	else:
+		scoreboard.set_score(id, sc)
 
 func _on_medal_awarded(id: int, medal_name: String) -> void:
 	if id == local_id:
